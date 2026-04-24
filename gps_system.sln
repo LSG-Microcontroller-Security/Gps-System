@@ -91,20 +91,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "activity", "activity", "{A1
 		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repository", "repository", "{E61C4A1A-6A04-472F-8DA8-BB03CE6D52C7}"
-	ProjectSection(SolutionItems) = preProject
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "adapters", "adapters", "{9A53F8D6-4A61-4A98-9DDA-45766FB36AA1}"
 	ProjectSection(SolutionItems) = preProject
 		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp
 		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h
 		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp
 		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repository", "repository", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h
 	EndProjectSection
 EndProject
 Global
@@ -164,8 +162,8 @@ Global
 		{5B694DD5-AE59-4264-BF36-5ECBA78E6F59} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
 		{A8F6E78E-41D3-4D9A-8B80-02ED6E2AE1F1} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
 		{A17C6B2E-2E14-4A1F-86DE-ED2E8AA197A6} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
-		{E61C4A1A-6A04-472F-8DA8-BB03CE6D52C7} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
 		{9A53F8D6-4A61-4A98-9DDA-45766FB36AA1} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5784AB65-4835-46DB-BB0A-383BC18AF187}
