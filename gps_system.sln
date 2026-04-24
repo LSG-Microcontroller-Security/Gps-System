@@ -1,0 +1,173 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37203.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gps_system", "gps_system\gps_system.vcxproj", "{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gps_system_test", "gps_system_test\gps_system_test.vcxproj", "{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ext_lib", "ext_lib", "{F3ABF167-4A9A-4A9E-92B7-35B4765E7E21}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortBActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortBActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortBActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortBActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortCActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortCActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortCActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortCActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortDActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortDActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortDActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_AnalogPortDActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_DigitalPortActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_DigitalPortActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_DigitalPortActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_DigitalPortActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_Ds1302RtcActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_Ds1302RtcActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_Ds1302RtcActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_Ds1302RtcActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_HCSR04.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_HCSR04.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_HCSR04.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_HCSR04.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_muxActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_muxActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_muxActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_muxActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NTC3950thermistorActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NTC3950thermistorActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NTC3950thermistorActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NTC3950thermistorActivity.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_infrastructure.sln = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_infrastructure.sln
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortB.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortB.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortB.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortB.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortC.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortC.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortC.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortC.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortD.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortD.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortD.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_AnalogPortD.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_DigitalPort.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_DigitalPort.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_DigitalPort.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_model_DigitalPort.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_BlueToothRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_BlueToothRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_BlueToothRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_BlueToothRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Ds1302RtcRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Ds1302RtcRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Ds1302RtcRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Ds1302RtcRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_EepromRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_EepromRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_EepromRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_EepromRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_HCSR04Repository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_HCSR04Repository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_HCSR04Repository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_HCSR04Repository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_IR_ATMEGA_Repository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_IR_ATMEGA_Repository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_IR_ATMEGA_Repository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_IR_ATMEGA_Repository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_LiquidCrystalRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_LiquidCrystalRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_LiquidCrystalRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_LiquidCrystalRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Pzem004tRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Pzem004tRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Pzem004tRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_Pzem004tRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_RFReceiverRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_RFReceiverRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_RFReceiverRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_RFReceiverRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SdCardRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SdCardRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SdCardRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SdCardRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_St7735DisplayRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_St7735DisplayRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_St7735DisplayRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_St7735DisplayRepository.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_utility_SerialUtils.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_utility_SerialUtils.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_utility_SerialUtils.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_utility_SerialUtils.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ext_roles_for_codex", "ext_roles_for_codex", "{5B694DD5-AE59-4264-BF36-5ECBA78E6F59}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\rules_for_codex\project_rules.md = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\rules_for_codex\project_rules.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "commons", "commons", "{A8F6E78E-41D3-4D9A-8B80-02ED6E2AE1F1}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "framework", "framework", "{6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "activity", "activity", "{A17C6B2E-2E14-4A1F-86DE-ED2E8AA197A6}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repository", "repository", "{E61C4A1A-6A04-472F-8DA8-BB03CE6D52C7}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_ISerial.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "adapters", "adapters", "{9A53F8D6-4A61-4A98-9DDA-45766FB36AA1}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_HardwareSerialAdapter.h
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_adapter_SoftwareSerialAdapter.h
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM.ActiveCfg = Debug|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM.Build.0 = Debug|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM.Deploy.0 = Debug|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM64.Build.0 = Debug|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x64.ActiveCfg = Debug|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x64.Build.0 = Debug|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x64.Deploy.0 = Debug|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x86.ActiveCfg = Debug|x86
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x86.Build.0 = Debug|x86
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Debug|x86.Deploy.0 = Debug|x86
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM.ActiveCfg = Release|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM.Build.0 = Release|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM.Deploy.0 = Release|ARM
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM64.ActiveCfg = Release|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM64.Build.0 = Release|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|ARM64.Deploy.0 = Release|ARM64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x64.ActiveCfg = Release|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x64.Build.0 = Release|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x64.Deploy.0 = Release|x64
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x86.ActiveCfg = Release|x86
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x86.Build.0 = Release|x86
+		{FEF3D6C6-88E2-4E12-A034-7DCAF8773C56}.Release|x86.Deploy.0 = Release|x86
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|ARM.ActiveCfg = Debug|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|ARM64.ActiveCfg = Debug|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|x64.ActiveCfg = Debug|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|x64.Build.0 = Debug|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|x86.ActiveCfg = Debug|Win32
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Debug|x86.Build.0 = Debug|Win32
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|ARM.ActiveCfg = Release|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|ARM64.ActiveCfg = Release|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|x64.ActiveCfg = Release|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|x64.Build.0 = Release|x64
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|x86.ActiveCfg = Release|Win32
+		{9C3F41D6-2B14-4A66-8D77-7C1B0322D4A2}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F3ABF167-4A9A-4A9E-92B7-35B4765E7E21} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{5B694DD5-AE59-4264-BF36-5ECBA78E6F59} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{A8F6E78E-41D3-4D9A-8B80-02ED6E2AE1F1} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{A17C6B2E-2E14-4A1F-86DE-ED2E8AA197A6} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{E61C4A1A-6A04-472F-8DA8-BB03CE6D52C7} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{9A53F8D6-4A61-4A98-9DDA-45766FB36AA1} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5784AB65-4835-46DB-BB0A-383BC18AF187}
+	EndGlobalSection
+EndGlobal

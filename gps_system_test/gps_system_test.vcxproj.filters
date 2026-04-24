@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4B04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="shared_with_microcontroller">
+      <UniqueIdentifier>{2A9D14D2-8F9A-4F53-953A-5254C671FD38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shared_with_microcontroller\business_layer">
+      <UniqueIdentifier>{560A662A-B7A3-4D2D-867C-BC5F995DCA54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shared_with_microcontroller\activity">
+      <UniqueIdentifier>{24DF0E39-2AA0-4D22-9D31-9702D5DE8D01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shared_with_microcontroller\repository">
+      <UniqueIdentifier>{0166D62E-9264-4B71-B8D6-674D26A83596}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gps_system_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gps_system\src\business\GpsSystem_BL.cpp">
+      <Filter>shared_with_microcontroller\business_layer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp">
+      <Filter>shared_with_microcontroller\activity</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extend.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\fakeit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gps_system\AppConfig.h">
+      <Filter>shared_with_microcontroller</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h">
+      <Filter>shared_with_microcontroller\activity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h">
+      <Filter>shared_with_microcontroller\repository</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
