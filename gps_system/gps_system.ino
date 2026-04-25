@@ -3,33 +3,35 @@
  Created:   4/24/2026 12:45:48 PM
  Author:    luigi
 */
-
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include "AppConfig.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
-#include <mf_repository_NmeaGpsRepository.h>
-#include <mf_activity_NmeaGpsActivity.h>
-#include "src/business/GpsSystem_BL.h"
+#include "src/mf_repository_NmeaGpsRepository.h"
+#include "src/mf_activity_NmeaGpsActivity.h"
+#include "src/GpsSystem_BL.h"
 
 SoftwareSerial gps_serial(AppConfig::software_serial_rx_pin, AppConfig::software_serial_tx_pin);
 SoftwareSerialAdapter gps_serial_adapter(gps_serial);
 mf_repository_NmeaGpsRepository nmea_gps_repository(gps_serial_adapter);
 mf_activity_NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
 GpsSystem_BL gps_system_bl(nmea_gps_activity);
-NmeaGpsData gps_data_for_external_flow = {};
-bool has_gps_data_for_external_flow = false;
-
+//SoftwareSerial gps_serial(8, 9); // RX, TX - GPS TX deve andare su Arduino D8
 void setup() {
-#if _DEBUG_FOR_SERIAL
+    //Serial.begin(115200);     // Console PC
+    //gps_serial.begin(9600);   // GPS NEO-6M tipicamente a 9600
+    //gps_serial.listen();
     Serial.begin(115200);
-#endif
-    nmea_gps_repository.begin();
+    Serial.println("GPS RAW TEST START");
 }
 
 void loop() {
-    // Questo oggetto contiene tutte le informazioni utili:
-    // latitudine, longitudine, quota, velocita', data/ora, fix, satelliti, ecc.
-    has_gps_data_for_external_flow = gps_system_bl.try_read_gps_data(gps_data_for_external_flow);
+    //while (gps_serial.available() > 0) {
+    //    int value = gps_serial.read();
+    //    if (value >= 0) {
+    //        Serial.write((char)value);
+    //    }
+    //}
+    Serial.println(gps_system_bl.read_and_log_coordinates());
     delay(1000);
 }

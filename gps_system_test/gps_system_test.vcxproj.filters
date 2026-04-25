@@ -29,10 +29,10 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\gps_system\src\business\GpsSystem_BL.cpp">
+    <ClCompile Include="..\gps_system\src\GpsSystem_BL.cpp">
       <Filter>shared_with_microcontroller\business_layer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.cpp">
+    <ClCompile Include="..\gps_system\src\mf_activity_NmeaGpsActivity.cpp">
       <Filter>shared_with_microcontroller\activity</Filter>
     </ClCompile>
   </ItemGroup>
@@ -49,11 +49,12 @@
     <ClInclude Include="..\gps_system\AppConfig.h">
       <Filter>shared_with_microcontroller</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_activity_NmeaGpsActivity.h">
+    <ClInclude Include="..\gps_system\src\mf_activity_NmeaGpsActivity.h">
       <Filter>shared_with_microcontroller\activity</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_NmeaGpsRepository.h">
+    <ClInclude Include="..\gps_system\src\mf_repository_NmeaGpsRepository.h">
       <Filter>shared_with_microcontroller\repository</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
+

@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "src/extend.h"
 #include "CppUnitTest.h"
-#include "../gps_system/src/business/GpsSystem_BL.h"
+#include "../gps_system/src/GpsSystem_BL.h"
 #include <mf_commons_commonsLayer.h>
-#include <mf_activity_NmeaGpsActivity.h>
-#include <mf_repository_NmeaGpsRepository.h>
+#include "../gps_system/src/mf_activity_NmeaGpsActivity.h"
+#include "../gps_system/src/mf_repository_NmeaGpsRepository.h"
 #include <initializer_list>
 #include <memory>
 #include <vector>
@@ -12,6 +12,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 namespace {
 constexpr uint8_t read_attempts_per_update = 6U;
 constexpr const char* gga_with_fix_and_position = "$GNGGA,141823.000,4530.63660,N,00914.61928,E,1,08,1.3,189.7,M,0.0,M,,*7D";
+constexpr const char* gga_with_invalid_checksum = "$GNGGA,141823.000,4530.63660,N,00914.61928,E,1,08,1.3,189.7,M,0.0,M,,*7C";
 constexpr const char* rmc_with_fix_and_position = "$GNRMC,141823.000,A,4530.63660,N,00914.61928,E,0.00,0.00,230426,,,A*73";
 constexpr const char* vtg_with_speed = "$GNVTG,0.00,T,,M,0.00,N,0.00,K,A*23";
 
@@ -86,6 +87,24 @@ namespace GpsSystemTest {
             Assert::AreEqual((int32_t)9243655L, gps_data.longitude_x1000000);
             Assert::AreEqual((int32_t)1897L, gps_data.altitude_meters_x10);
             Assert::AreEqual((uint16_t)0U, gps_data.speed_kmh_x100);
+        }
+
+        TEST_METHOD(try_read_gps_data_rejects_invalid_checksum_sentence) {
+            Mock<mf_repository_NmeaGpsRepository> mocked_nmea_gps_repository;
+            std::vector<const char*> read_script;
+            append_cycle(read_script, { gga_with_invalid_checksum });
+            setup_repository_read_script(mocked_nmea_gps_repository, read_script);
+
+            mf_repository_NmeaGpsRepository& nmea_gps_repository = mocked_nmea_gps_repository.get();
+            mf_activity_NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
+            GpsSystem_BL gps_system_bl(nmea_gps_activity);
+            NmeaGpsData gps_data = {};
+
+            const bool read_ok = gps_system_bl.try_read_gps_data(gps_data);
+
+            Assert::IsFalse(read_ok);
+            Assert::IsFalse(gps_data.has_fix);
+            Assert::IsFalse(gps_data.has_position);
         }
     };
 }

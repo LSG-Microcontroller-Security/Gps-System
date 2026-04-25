@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>xml;json;txt;rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="business">
+      <UniqueIdentifier>{ddae9194-3783-4009-b51f-dfaa78e84b1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="repository">
+      <UniqueIdentifier>{f2ce0e0e-71e4-4509-861c-432e4a596a57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="activity">
+      <UniqueIdentifier>{63721796-3902-41cc-9906-fc215491277a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\arduino folders read me.txt">
@@ -23,15 +32,18 @@
     <ClCompile Include="gps_system.ino">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\business\GpsSystem_BL.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\mf_activity_NmeaGpsActivity.cpp">
+      <Filter>activity</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GpsSystem_BL.cpp">
+      <Filter>business</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mf_repository_NmeaGpsRepository.cpp">
+      <Filter>repository</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AppConfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\business\GpsSystem_BL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h">
@@ -39,6 +51,15 @@
     </ClInclude>
     <ClInclude Include="__vm\.gps_system.vsarduino.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mf_activity_NmeaGpsActivity.h">
+      <Filter>activity</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GpsSystem_BL.h">
+      <Filter>business</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mf_repository_NmeaGpsRepository.h">
+      <Filter>repository</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
