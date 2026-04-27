@@ -11,7 +11,7 @@
 
 class GpsSystem_BL {
 public:
-    explicit GpsSystem_BL(IGpsActivity& gps_activity, SimRepository& sim_repository);
+    explicit GpsSystem_BL(NmeaGpsActivity& gps_activity, SimRepository& sim_repository);
     ~GpsSystem_BL() = default;
 
     bool read_and_log_coordinates();
@@ -19,6 +19,6 @@ public:
     void hang_up_phone_call();
 
 private:
-    IGpsActivity& gps_activity_;
+    NmeaGpsActivity& gps_activity_;
     SimRepository& sim_repository_;
 };

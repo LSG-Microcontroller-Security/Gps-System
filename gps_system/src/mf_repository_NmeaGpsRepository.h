@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <mf_repository_ISerial.h>
 
-class mf_repository_NmeaGpsRepository {
+class NmeaGpsRepository {
 public:
     // Inizializza il repository con l'interfaccia seriale concreta.
-    explicit mf_repository_NmeaGpsRepository(ISerial& serial);
-    virtual ~mf_repository_NmeaGpsRepository() = default;
+    explicit NmeaGpsRepository(ISerial& serial);
+    virtual ~NmeaGpsRepository() = default;
     // Avvia la seriale GPS con baud rate di default e pulisce il buffer.
     virtual void begin();
     // Attiva l'ascolto della seriale quando l'adapter sottostante lo supporta.

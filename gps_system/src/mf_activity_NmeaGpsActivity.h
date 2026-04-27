@@ -13,22 +13,14 @@ struct GpsConnectionStatus {
     bool has_recent_coordinates;
 };
 
-class IGpsActivity {
+class NmeaGpsActivity {
 public:
-    virtual ~IGpsActivity() = default;
-    virtual const GpsConnectionStatus& update_gps_status() = 0;
-    virtual mf_repository_NmeaGpsRepository& get_repository() = 0;
-    virtual const mf_repository_NmeaGpsRepository& get_repository() const = 0;
-};
+    explicit NmeaGpsActivity(NmeaGpsRepository& nmea_gps_repository);
+    ~NmeaGpsActivity() = default;
 
-class mf_activity_NmeaGpsActivity : public IGpsActivity {
-public:
-    explicit mf_activity_NmeaGpsActivity(mf_repository_NmeaGpsRepository& nmea_gps_repository);
-    virtual ~mf_activity_NmeaGpsActivity() = default;
-
-    const GpsConnectionStatus& update_gps_status() override;
-    mf_repository_NmeaGpsRepository& get_repository() override;
-    const mf_repository_NmeaGpsRepository& get_repository() const override;
+    const GpsConnectionStatus& update_gps_status();
+    NmeaGpsRepository& get_repository();
+    const NmeaGpsRepository& get_repository() const;
 
 private:
     static const uint8_t nmea_sentence_buffer_length = 83;
@@ -48,7 +40,7 @@ private:
     void clear_data(GpsConnectionStatus& data) const;
 
 private:
-    mf_repository_NmeaGpsRepository& nmea_gps_repository_;
+    NmeaGpsRepository& nmea_gps_repository_;
     bool has_last_coordinates_;
     GpsConnectionStatus last_status_;
 };

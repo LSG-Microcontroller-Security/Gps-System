@@ -7,22 +7,22 @@ constexpr uint8_t max_cycles_without_position_before_stale = 15U;
 constexpr uint8_t nmea_checksum_chars = 2U;
 }
 
-mf_activity_NmeaGpsActivity::mf_activity_NmeaGpsActivity(mf_repository_NmeaGpsRepository& nmea_gps_repository)
+NmeaGpsActivity::NmeaGpsActivity(NmeaGpsRepository& nmea_gps_repository)
     : nmea_gps_repository_(nmea_gps_repository),
       has_last_coordinates_(false) {
     clear_data(last_status_);
     nmea_gps_repository_.begin();
 }
 
-mf_repository_NmeaGpsRepository& mf_activity_NmeaGpsActivity::get_repository() {
+NmeaGpsRepository& NmeaGpsActivity::get_repository() {
     return nmea_gps_repository_;
 }
 
-const mf_repository_NmeaGpsRepository& mf_activity_NmeaGpsActivity::get_repository() const {
+const NmeaGpsRepository& NmeaGpsActivity::get_repository() const {
     return nmea_gps_repository_;
 }
 
-bool mf_activity_NmeaGpsActivity::try_read_data(GpsConnectionStatus& out_data, uint8_t max_sentences_to_read) {
+bool NmeaGpsActivity::try_read_data(GpsConnectionStatus& out_data, uint8_t max_sentences_to_read) {
     clear_data(out_data);
     bool parsed_any_sentence = false;
     char sentence[nmea_sentence_buffer_length];
@@ -41,7 +41,7 @@ bool mf_activity_NmeaGpsActivity::try_read_data(GpsConnectionStatus& out_data, u
     return parsed_any_sentence;
 }
 
-const GpsConnectionStatus& mf_activity_NmeaGpsActivity::update_gps_status() {
+const GpsConnectionStatus& NmeaGpsActivity::update_gps_status() {
     GpsConnectionStatus parsed_data = {};
     const bool is_read = try_read_data(parsed_data);
 
@@ -80,7 +80,7 @@ const GpsConnectionStatus& mf_activity_NmeaGpsActivity::update_gps_status() {
     return last_status_;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_sentence(const char* sentence, GpsConnectionStatus& data) const {
+bool NmeaGpsActivity::parse_sentence(const char* sentence, GpsConnectionStatus& data) const {
     if (is_sentence_type(sentence, 'G', 'G', 'A')) {
         return parse_gga_sentence(sentence, data);
     }
@@ -92,7 +92,7 @@ bool mf_activity_NmeaGpsActivity::parse_sentence(const char* sentence, GpsConnec
     return false;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_gga_sentence(const char* sentence, GpsConnectionStatus& data) const {
+bool NmeaGpsActivity::parse_gga_sentence(const char* sentence, GpsConnectionStatus& data) const {
     const char* field = nullptr;
     uint8_t length = 0;
 
@@ -137,7 +137,7 @@ bool mf_activity_NmeaGpsActivity::parse_gga_sentence(const char* sentence, GpsCo
     return true;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_rmc_sentence(const char* sentence, GpsConnectionStatus& data) const {
+bool NmeaGpsActivity::parse_rmc_sentence(const char* sentence, GpsConnectionStatus& data) const {
     const char* field = nullptr;
     uint8_t length = 0;
 
@@ -181,7 +181,7 @@ bool mf_activity_NmeaGpsActivity::parse_rmc_sentence(const char* sentence, GpsCo
     return true;
 }
 
-bool mf_activity_NmeaGpsActivity::is_sentence_checksum_valid(const char* sentence) const {
+bool NmeaGpsActivity::is_sentence_checksum_valid(const char* sentence) const {
     if (sentence == nullptr || sentence[0] != '$') {
         return false;
     }
@@ -213,7 +213,7 @@ bool mf_activity_NmeaGpsActivity::is_sentence_checksum_valid(const char* sentenc
     return checksum == received_checksum;
 }
 
-int8_t mf_activity_NmeaGpsActivity::hex_to_nibble(char value) const {
+int8_t NmeaGpsActivity::hex_to_nibble(char value) const {
     if (value >= '0' && value <= '9') {
         return static_cast<int8_t>(value - '0');
     }
@@ -229,7 +229,7 @@ int8_t mf_activity_NmeaGpsActivity::hex_to_nibble(char value) const {
     return -1;
 }
 
-bool mf_activity_NmeaGpsActivity::is_sentence_type(const char* sentence, char first, char second, char third) const {
+bool NmeaGpsActivity::is_sentence_type(const char* sentence, char first, char second, char third) const {
     return sentence != nullptr &&
         sentence[0] == '$' &&
         sentence[3] == first &&
@@ -237,7 +237,7 @@ bool mf_activity_NmeaGpsActivity::is_sentence_type(const char* sentence, char fi
         sentence[5] == third;
 }
 
-bool mf_activity_NmeaGpsActivity::get_field(const char* sentence, uint8_t field_index, const char*& field, uint8_t& length) const {
+bool NmeaGpsActivity::get_field(const char* sentence, uint8_t field_index, const char*& field, uint8_t& length) const {
     if (sentence == nullptr) {
         return false;
     }
@@ -271,7 +271,7 @@ bool mf_activity_NmeaGpsActivity::get_field(const char* sentence, uint8_t field_
     return false;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_uint_field(const char* field, uint8_t length, uint16_t& out_value) const {
+bool NmeaGpsActivity::parse_uint_field(const char* field, uint8_t length, uint16_t& out_value) const {
     if (field == nullptr || length == 0U) {
         return false;
     }
@@ -289,7 +289,7 @@ bool mf_activity_NmeaGpsActivity::parse_uint_field(const char* field, uint8_t le
     return true;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_decimal_scaled(const char* field, uint8_t length, uint8_t scale_digits, int32_t& out_value) const {
+bool NmeaGpsActivity::parse_decimal_scaled(const char* field, uint8_t length, uint8_t scale_digits, int32_t& out_value) const {
     if (field == nullptr || length == 0U) {
         return false;
     }
@@ -344,7 +344,7 @@ bool mf_activity_NmeaGpsActivity::parse_decimal_scaled(const char* field, uint8_
     return true;
 }
 
-bool mf_activity_NmeaGpsActivity::parse_coordinate_field(
+bool NmeaGpsActivity::parse_coordinate_field(
     const char* field,
     uint8_t length,
     char hemisphere,
@@ -385,7 +385,7 @@ bool mf_activity_NmeaGpsActivity::parse_coordinate_field(
     return true;
 }
 
-void mf_activity_NmeaGpsActivity::clear_data(GpsConnectionStatus& data) const {
+void NmeaGpsActivity::clear_data(GpsConnectionStatus& data) const {
     data.latitude_x1000000 = 0L;
     data.longitude_x1000000 = 0L;
     data.cycles_since_last_position = 0U;

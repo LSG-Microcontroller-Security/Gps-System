@@ -44,7 +44,7 @@ void append_cycle(std::vector<const char*>& read_script, std::initializer_list<c
         ++slots_filled;
     }
 }
-void setup_repository_read_script(Mock<mf_repository_NmeaGpsRepository>& mocked_repository, const std::vector<const char*>& read_script) {
+void setup_repository_read_script(Mock<NmeaGpsRepository>& mocked_repository, const std::vector<const char*>& read_script) {
     std::shared_ptr<size_t> read_index = std::make_shared<size_t>(0U);
 
     When(Method(mocked_repository, read_sentence)).AlwaysDo([read_script, read_index](char* out_sentence, uint8_t max_length) {
@@ -62,12 +62,12 @@ namespace GpsSystemTest {
     TEST_CLASS(GpsSystemTest) {
     public:
         TEST_METHOD(update_gps_status_loads_trace_into_connection_status) {
-            Mock<mf_repository_NmeaGpsRepository> mocked_nmea_gps_repository;
+            Mock<NmeaGpsRepository> mocked_nmea_gps_repository;
             std::vector<const char*> read_script;
             append_cycle(read_script, { gga_with_fix_and_position, rmc_with_fix_and_position });
             setup_repository_read_script(mocked_nmea_gps_repository, read_script);
-            mf_repository_NmeaGpsRepository& nmea_gps_repository = mocked_nmea_gps_repository.get();
-            mf_activity_NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
+            NmeaGpsRepository& nmea_gps_repository = mocked_nmea_gps_repository.get();
+            NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
             const GpsConnectionStatus& gps_status = nmea_gps_activity.update_gps_status();
 
             Assert::IsTrue(gps_status.has_fix);
@@ -79,7 +79,7 @@ namespace GpsSystemTest {
         }
 
         TEST_METHOD(update_gps_status_marks_coordinates_stale_after_many_empty_cycles) {
-            Mock<mf_repository_NmeaGpsRepository> mocked_nmea_gps_repository;
+            Mock<NmeaGpsRepository> mocked_nmea_gps_repository;
             std::vector<const char*> read_script;
             append_cycle(read_script, { gga_with_fix_and_position, rmc_with_fix_and_position });
             for (uint8_t cycle = 0U; cycle < 16U; ++cycle) {
@@ -87,8 +87,8 @@ namespace GpsSystemTest {
             }
 
             setup_repository_read_script(mocked_nmea_gps_repository, read_script);
-            mf_repository_NmeaGpsRepository& nmea_gps_repository = mocked_nmea_gps_repository.get();
-            mf_activity_NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
+            NmeaGpsRepository& nmea_gps_repository = mocked_nmea_gps_repository.get();
+            NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
             const GpsConnectionStatus* gps_status = &nmea_gps_activity.update_gps_status();
             Assert::IsTrue(gps_status->has_recent_coordinates);
 

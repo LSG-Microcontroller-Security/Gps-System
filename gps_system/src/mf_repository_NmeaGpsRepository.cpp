@@ -7,34 +7,34 @@ constexpr unsigned long nmea_gps_default_timeout_ms = 1000UL;
 constexpr uint8_t nmea_min_sentence_length = 7;
 }
 
-mf_repository_NmeaGpsRepository::mf_repository_NmeaGpsRepository(ISerial& serial)
+NmeaGpsRepository::NmeaGpsRepository(ISerial& serial)
     : serial_(serial), timeout_ms_(nmea_gps_default_timeout_ms) {
 }
 
-void mf_repository_NmeaGpsRepository::begin() {
+void NmeaGpsRepository::begin() {
     serial_.begin(nmea_gps_default_baud_rate);
     serial_.setTimeout(timeout_ms_);
     clear_receive_buffer();
 }
 
-bool mf_repository_NmeaGpsRepository::listen() {
+bool NmeaGpsRepository::listen() {
     return serial_.listen();
 }
 
-bool mf_repository_NmeaGpsRepository::is_listening() {
+bool NmeaGpsRepository::is_listening() {
     return serial_.isListening();
 }
 
-bool mf_repository_NmeaGpsRepository::stop_listening() {
+bool NmeaGpsRepository::stop_listening() {
     return serial_.stopListening();
 }
 
-void mf_repository_NmeaGpsRepository::set_timeout(unsigned long timeout_ms) {
+void NmeaGpsRepository::set_timeout(unsigned long timeout_ms) {
     timeout_ms_ = timeout_ms;
     serial_.setTimeout(timeout_ms_);
 }
 
-bool mf_repository_NmeaGpsRepository::read_sentence(char* out_sentence, uint8_t max_length) {
+bool NmeaGpsRepository::read_sentence(char* out_sentence, uint8_t max_length) {
     if (out_sentence == nullptr || max_length < nmea_min_sentence_length) {
         return false;
     }
@@ -83,7 +83,7 @@ bool mf_repository_NmeaGpsRepository::read_sentence(char* out_sentence, uint8_t 
     return false;
 }
 
-void mf_repository_NmeaGpsRepository::clear_receive_buffer() {
+void NmeaGpsRepository::clear_receive_buffer() {
     while (serial_.available() > 0) {
         serial_.read();
     }
