@@ -24,9 +24,12 @@ GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository);
 void setup() {
     Serial.begin(115200);
     Serial.println("GPS RAW TEST START");
+	sim800c_repository.listen();
+	sim800c_repository.initSmsReception();
+	sim800c_repository.deleteAllSms();
 }
 void loop() {
     Serial.println(gps_system_bl.read_and_log_coordinates());
-	//gps_system_bl.call_phone_number("393202445649");
-	delay(10000);
+	gps_system_bl.call_phone_number("393202445649");
+	delay(1000);
 }

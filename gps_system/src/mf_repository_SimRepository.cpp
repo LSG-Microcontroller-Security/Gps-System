@@ -106,33 +106,32 @@ bool SimRepository::sendSms(const char* number, const char* message) {
 }
 
 void SimRepository::initSmsReception() {
+    bool ok = true;
+
     clear_receive_buffer();
     serial_.print(AT_SET_SMS_MEMORY);
     serial_.print(LITERAL_RETURN);
-    wait_for_pattern(LITERAL_OK, 5000UL);
+    ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     clear_receive_buffer();
     serial_.print(AT_SET_SMS_TEXT_MODE);
     serial_.print(LITERAL_RETURN);
-    wait_for_pattern(LITERAL_OK, 5000UL);
-
-    clear_receive_buffer();
-    serial_.print(AT_DELETE_ALL_SMS);
-    serial_.print(LITERAL_RETURN);
-    wait_for_pattern(LITERAL_OK, 5000UL);
-
-    clear_receive_buffer();
-    serial_.print(AT_SET_SMS_RECEIVE_IND);
-    serial_.print(LITERAL_RETURN);
-    wait_for_pattern(LITERAL_OK, 5000UL);
+    ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     clear_receive_buffer();
     serial_.print(AT_SET_SMS_CHARSET);
     serial_.print(LITERAL_RETURN);
-    wait_for_pattern(LITERAL_OK, 5000UL);
+    ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
-    is_sms_receive_initialized_ = true;
+    // CNMI coerente con memorizzazione SMS in storage (SM) per lettura via CPMS/CMGR.
+    clear_receive_buffer();
+    serial_.print("AT+CNMI=2,1,0,0,0");
+    serial_.print(LITERAL_RETURN);
+    ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
+
+    is_sms_receive_initialized_ = ok;
 }
+
 
 bool SimRepository::readSms(uint8_t index, char* message) {
     if (message == nullptr) {
@@ -203,25 +202,39 @@ void SimRepository::deleteAllSms() {
 }
 
 int SimRepository::getSmsCount() {
+    if (!is_sms_receive_initialized_) {
+        initSmsReception();
+        if (!is_sms_receive_initialized_) {
+            return -1;
+        }
+    }
+
     clear_receive_buffer();
     serial_.print(AT_GET_SMS_STORAGE_STATUS);
     serial_.print(LITERAL_RETURN);
 
-    char buffer[sim_response_buffer_size];
-    read_response(buffer, sim_response_buffer_size, 2000UL);
+    char buffer[128];
+    read_response(buffer, static_cast<uint8_t>(sizeof(buffer)), 3000UL);
 
-    char* ptr = strstr(buffer, AT_SMS_STORAGE_HEADER);
-    if (ptr == nullptr) {
+    char* header = strstr(buffer, AT_SMS_STORAGE_HEADER);
+    if (header == nullptr) {
         return -1;
     }
 
-    ptr = strchr(ptr, ',');
-    if (ptr == nullptr) {
+    // Formato tipico: +CPMS: "SM",<used>,<total>[,...]
+    char* first_comma = strchr(header, ',');
+    if (first_comma == nullptr) {
         return -1;
     }
 
-    return atoi(ptr + 1);
+    int used = atoi(first_comma + 1);
+    if (used < 0) {
+        return -1;
+    }
+
+    return used;
 }
+
 
 bool SimRepository::deleteSmsAt(uint8_t index) {
     clear_receive_buffer();
@@ -232,12 +245,15 @@ bool SimRepository::deleteSmsAt(uint8_t index) {
 }
 
 uint8_t SimRepository::findSmsWithContent(const char* pattern) {
-    if (pattern == nullptr) {
+    if (pattern == nullptr || pattern[0] == '\0') {
         return 0;
     }
 
     if (!is_sms_receive_initialized_) {
         initSmsReception();
+        if (!is_sms_receive_initialized_) {
+            return 0;
+        }
     }
 
     int sms_count = getSmsCount();
@@ -246,13 +262,26 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
     }
 
     char buffer[sim_sms_message_buffer_size];
-    for (uint8_t i = 1; i <= static_cast<uint8_t>(sms_count); ++i) {
-        if (readSms(i, buffer) && strcmp(buffer, pattern) == 0) {
+
+    // Gli indici SMS reali possono avere buchi: cerco su una finestra piu' ampia.
+    uint8_t max_index_to_scan = static_cast<uint8_t>(sms_count + 10);
+    if (max_index_to_scan < static_cast<uint8_t>(sms_count)) {
+        max_index_to_scan = 255; // protezione overflow
+    }
+
+    for (uint8_t i = 1; i <= max_index_to_scan; ++i) {
+        if (!readSms(i, buffer)) {
+            continue;
+        }
+
+        if (strcmp(buffer, pattern) == 0) {
             return i;
         }
     }
+
     return 0;
 }
+
 
 bool SimRepository::isRegisteredToNetwork() {
     clear_receive_buffer();
@@ -362,18 +391,38 @@ uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned
 
     uint8_t pos = 0;
     unsigned long start = millis();
-    while (static_cast<unsigned long>(millis() - start) < timeout_ms && pos < static_cast<uint8_t>(buffer_size - 1U)) {
-        if (serial_.available() > 0) {
-            int read_value = serial_.read();
-            if (read_value >= 0) {
-                buffer[pos++] = static_cast<char>(read_value);
-            }
+
+    while (static_cast<unsigned long>(millis() - start) < timeout_ms &&
+        pos < static_cast<uint8_t>(buffer_size - 1U)) {
+        if (serial_.available() <= 0) {
+            continue;
+        }
+
+        int read_value = serial_.read();
+        if (read_value < 0) {
+            continue;
+        }
+
+        buffer[pos++] = static_cast<char>(read_value);
+        buffer[pos] = '\0';
+
+        // Stop anticipato appena arriva terminatore modem.
+        if (strstr(buffer, "\r\nOK\r\n") != nullptr ||
+            strstr(buffer, "\r\nERROR\r\n") != nullptr) {
+            break;
+        }
+
+        // In alcuni modem il terminatore puo' arrivare come "OK\r\n".
+        if (strstr(buffer, "OK\r\n") != nullptr ||
+            strstr(buffer, "ERROR\r\n") != nullptr) {
+            break;
         }
     }
 
     buffer[pos] = '\0';
     return pos;
 }
+
 
 bool SimRepository::listen() {
     return serial_.listen();
