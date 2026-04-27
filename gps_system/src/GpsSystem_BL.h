@@ -16,7 +16,6 @@ public:
 
     bool read_and_log_coordinates();
     bool call_phone_number(const char* number);
-    bool call_phone_number_xxx();
     void hang_up_phone_call();
 
 private:

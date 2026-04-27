@@ -19,8 +19,7 @@ mf_repository_NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter)
 mf_activity_NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
 SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
 SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-AvrMicroRepository sim800c_avr_micro_repository(sim800c_software_serial_adapter,mf::commons::commonsLayer::AnalogRefMode::DEFAULT_m,5.0f);
-SimRepository sim800c_repository(sim800c_avr_micro_repository,0, AppConfig::sim800c_serial_baud_rate);
+SimRepository sim800c_repository(sim800c_software_serial_adapter,0, AppConfig::sim800c_serial_baud_rate);
 GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository);
 void setup() {
     Serial.begin(115200);
@@ -28,7 +27,6 @@ void setup() {
 }
 void loop() {
     Serial.println(gps_system_bl.read_and_log_coordinates());
-    delay(1000);
-	gps_system_bl.call_phone_number("393202445649");
+	//gps_system_bl.call_phone_number("393202445649");
 	delay(10000);
 }

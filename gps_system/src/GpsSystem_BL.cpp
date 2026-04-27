@@ -28,13 +28,9 @@ bool GpsSystem_BL::read_and_log_coordinates() {
 }
 
 bool GpsSystem_BL::call_phone_number(const char* number) {
+	sim_repository_.listen();
     return sim_repository_.call(number);
 }
-
-bool GpsSystem_BL::call_phone_number_xxx() {
-    return sim_repository_.call("393202445649;");
-}
-
 void GpsSystem_BL::hang_up_phone_call() {
     sim_repository_.hangUp();
 }

@@ -1,335 +1,389 @@
+// mf_repository_SimRepository.cpp
 #include "mf_repository_SimRepository.h"
+#include <Arduino.h>
 #include <string.h>
-#include "Arduino.h"
-// Comando AT per chiamare: ATD<numero>;\r
-// Comandi AT principali
-#define AT_SMS_HEADER             "+CMGR:"
-#define AT_SET_SMS_TEXT_MODE      "AT+CMGF=1"
-#define AT_SET_SMS_PDU_MODE       "AT+CMGF=0"
-#define AT_SET_SMS_SHOW_IND       "AT+CNMI=2,2,0,0,0"
-#define AT_SET_SMS_CHARSET        "AT+CSCS=\"GSM\""
-#define ATD_COMMAND               "ATD+"
-#define HANGUP_COMMAND            "ATH"
-#define AT_SEND_SMS_PREFIX        "AT+CMGS=\""
-#define LITERAL_OK                "OK"
-#define LITERAL_CTRL_Z            ((char)26)
-#define LITERAL_RETURN            "\r\n"
-#define AT_READ_SMS_PREFIX   "AT+CMGR="
-#define AT_DELETE_ALL_SMS "AT+CMGD=1,4"
-#define AT_SET_SMS_MEMORY      "AT+CPMS=\"SM\""
-#define AT_GET_SMS_STORAGE_STATUS "AT+CPMS?"
-#define AT_SMS_STORAGE_HEADER "+CPMS:"
-#define AT_DELETE_SMS_PREFIX "AT+CMGD="
+#include <stdlib.h>
 
+#define AT_SMS_HEADER                "+CMGR:"
+#define AT_SET_SMS_TEXT_MODE         "AT+CMGF=1"
+#define AT_SET_SMS_PDU_MODE          "AT+CMGF=0"
+#define AT_SET_SMS_CHARSET           "AT+CSCS=\"GSM\""
+#define ATD_COMMAND                  "ATD+"
+#define HANGUP_COMMAND               "ATH"
+#define AT_SEND_SMS_PREFIX           "AT+CMGS=\""
+#define LITERAL_OK                   "OK"
+#define LITERAL_CTRL_Z               ((char)26)
+#define LITERAL_RETURN               "\r\n"
+#define AT_READ_SMS_PREFIX           "AT+CMGR="
+#define AT_DELETE_ALL_SMS            "AT+CMGD=1,4"
+#define AT_SET_SMS_MEMORY            "AT+CPMS=\"SM\""
+#define AT_GET_SMS_STORAGE_STATUS    "AT+CPMS?"
+#define AT_SMS_STORAGE_HEADER        "+CPMS:"
+#define AT_DELETE_SMS_PREFIX         "AT+CMGD="
+#define AT_NETWORK_REGISTRATION      "AT+CREG?"
+#define AT_SIGNAL_STRENGTH           "AT+CSQ"
+#define AT_GPRS_ATTACHED             "AT+CGATT?"
+#define AT_SET_SMS_RECEIVE_IND       "AT+CNMI=1,1,0,0,0"
 
+namespace {
+constexpr uint8_t sim_response_buffer_size = 64;
+constexpr uint8_t sim_small_response_buffer_size = 32;
+constexpr uint8_t sim_sms_message_buffer_size = 64;
+}
 
-SimRepository::SimRepository(AvrMicroRepository& avrMicroRepository, uint8_t powerPin, unsigned long baudRate)
-    : avrMicroRepository(&avrMicroRepository), powerPin(powerPin), baudRate(baudRate) {
-	avrMicroRepository.begin(baudRate); // Inizializza la comunicazione seriale
+SimRepository::SimRepository(ISerial& serial, uint8_t power_pin, unsigned long baud_rate)
+    : serial_(serial), power_pin_(power_pin), baud_rate_(baud_rate), is_sms_receive_initialized_(false) {
+    serial_.begin(baud_rate_);
 }
 
 bool SimRepository::call(const char* number) {
-    // Precondizione: modulo acceso e pronto, SIM inserita e unlockata
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(ATD_COMMAND);      // "ATD"
-    avrMicroRepository->print(number);           // il numero
-    avrMicroRepository->print(";");              // punto e virgola per chiamata vocale
-    avrMicroRepository->print("\r");             // return per invio comando
+    clear_receive_buffer();
+    serial_.print(ATD_COMMAND);
+    serial_.print(number);
+    serial_.print(";");
+    serial_.print("\r");
 
-    // Attendi risposta "OK" o "NO CARRIER" ecc, gestisci qui se vuoi
-    unsigned long start = avrMicroRepository->get_millis();
-    while (avrMicroRepository->get_millis() - start < 5000) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            // Qui puoi implementare una logica per "OK", "NO CARRIER", ecc.
-            // Per ora semplifico: se arriva un carattere, assumi che qualcosa è successo.
-            return true;
+    unsigned long start = millis();
+    while (static_cast<unsigned long>(millis() - start) < 5000UL) {
+        if (serial_.available() > 0) {
+            int read_value = serial_.read();
+            if (read_value >= 0) {
+                return true;
+            }
         }
     }
-    // Timeout: nessuna risposta dal modulo
     return false;
 }
 
 void SimRepository::hangUp() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(HANGUP_COMMAND);   // "ATH\r"
-	avrMicroRepository->print(LITERAL_RETURN);   // return per invio comando
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 2000);
+    clear_receive_buffer();
+    serial_.print(HANGUP_COMMAND);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 void SimRepository::setSmsTextMode() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SET_SMS_TEXT_MODE);
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 2000);
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_TEXT_MODE);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 void SimRepository::setSmsPduMode() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SET_SMS_PDU_MODE);
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 2000);
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_PDU_MODE);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 bool SimRepository::sendSms(const char* number, const char* message) {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SEND_SMS_PREFIX);  // "AT+CMGS=\""
-    avrMicroRepository->print(number);
-    avrMicroRepository->print("\"");                // <--- CHIUSURA VIRGOLETTE MANCANTE!
-    avrMicroRepository->print(LITERAL_RETURN);
+    clear_receive_buffer();
+    serial_.print(AT_SEND_SMS_PREFIX);
+    serial_.print(number);
+    serial_.print("\"");
+    serial_.print(LITERAL_RETURN);
 
-    // Attendi prompt '>'
-    unsigned long start = avrMicroRepository->get_millis();
-    bool gotPrompt = false;
-    while (avrMicroRepository->get_millis() - start < 3000) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            if (c == '>') {
-                gotPrompt = true;
+    unsigned long start = millis();
+    bool got_prompt = false;
+    while (static_cast<unsigned long>(millis() - start) < 3000UL) {
+        if (serial_.available() > 0) {
+            int read_value = serial_.read();
+            if (read_value == '>') {
+                got_prompt = true;
                 break;
             }
         }
     }
-    if (!gotPrompt) return false;
 
-    avrMicroRepository->print(message);
-    avrMicroRepository->print(LITERAL_CTRL_Z);
-    avrMicroRepository->delay(1000);  // opzionale
+    if (!got_prompt) {
+        return false;
+    }
 
+    serial_.print(message);
+    serial_.print(LITERAL_CTRL_Z);
+    delay(1000UL);
     return true;
 }
 
 void SimRepository::initSmsReception() {
-    // 1. Seleziona la memoria SMS sulla SIM
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SET_SMS_MEMORY);       // "AT+CPMS=\"SM\""
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 5000);
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_MEMORY);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 5000UL);
 
-    // 2. Imposta la modalità testo
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SET_SMS_TEXT_MODE);    // "AT+CMGF=1"
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 5000);
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_TEXT_MODE);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 5000UL);
 
-    // 3. Cancella tutti gli SMS dalla memoria selezionata
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_DELETE_ALL_SMS);       // "AT+CMGD=1,4"
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 5000);
+    clear_receive_buffer();
+    serial_.print(AT_DELETE_ALL_SMS);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 5000UL);
 
-    // 4. Imposta la notifica E la memorizzazione degli SMS ricevuti
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print("AT+CNMI=1,1,0,0,0");     // **Questa è la riga cruciale**
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 5000);
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_RECEIVE_IND);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 5000UL);
 
-    // (Opzionale) Imposta charset GSM
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_SET_SMS_CHARSET);      // "AT+CSCS=\"GSM\""
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 5000);
-	this->isSmsReceiveInitialized = true; // Flag per indicare che la ricezione SMS è stata inizializzata 
+    clear_receive_buffer();
+    serial_.print(AT_SET_SMS_CHARSET);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 5000UL);
+
+    is_sms_receive_initialized_ = true;
 }
 
 bool SimRepository::readSms(uint8_t index, char* message) {
-    if(this->isSmsReceiveInitialized == false) {
-		initSmsReception();
-	}
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_READ_SMS_PREFIX);
-    avrMicroRepository->print(index);
-    avrMicroRepository->print(LITERAL_RETURN);
-    bool foundHeader = false;
-    bool foundMsg = false;
-    int msgPos = 0;
-    int crlfCount = 0;  // Conta i CR/LF per trovare inizio testo
-    unsigned long start = avrMicroRepository->get_millis();
-    while (avrMicroRepository->get_millis() - start < 2500 && msgPos < avrMicroRepository->getSerialBufferSize()) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            // Cerca la riga header
-            if (!foundHeader) {
-                static char lastChars[7] = { 0 };
-                // Shift buffer
-                memmove(lastChars, lastChars + 1, 6);
-                lastChars[6] = c;
-                // Se negli ultimi 6 char c'è "+CMGR:"
-                if (strncmp(lastChars, AT_SMS_HEADER, 6) == 0) {
-                    foundHeader = true;
-                    crlfCount = 0;
-                }
-            }
-            else if (!foundMsg) {
-                // Conta \n per saltare l’header, cerca la prima riga utile
-                if (c == '\n') crlfCount++;
-                // Dopo il primo CRLF, inizia a copiare il testo
-                if (crlfCount == 1 && c != '\r' && c != '\n') {
-                    message[msgPos++] = c;
-                    foundMsg = true;
-                }
-            }
-            else {
-                // Continua a copiare caratteri del messaggio fino a CR/LF
-                if (c == '\r' || c == '\n') {
-                    break;
-                }
-                else if (msgPos < avrMicroRepository->getSerialBufferSize()) {
-                    message[msgPos++] = c;
-                }
+    if (message == nullptr) {
+        return false;
+    }
+
+    if (!is_sms_receive_initialized_) {
+        initSmsReception();
+    }
+
+    clear_receive_buffer();
+    serial_.print(AT_READ_SMS_PREFIX);
+    serial_.print(index);
+    serial_.print(LITERAL_RETURN);
+
+    bool found_header = false;
+    bool found_message = false;
+    uint8_t message_pos = 0;
+    uint8_t crlf_count = 0;
+    unsigned long start = millis();
+    char last_chars[7] = { 0 };
+
+    while (static_cast<unsigned long>(millis() - start) < 2500UL && message_pos < static_cast<uint8_t>(sim_sms_message_buffer_size - 1U)) {
+        if (serial_.available() <= 0) {
+            continue;
+        }
+
+        int read_value = serial_.read();
+        if (read_value < 0) {
+            continue;
+        }
+
+        char c = static_cast<char>(read_value);
+        if (!found_header) {
+            memmove(last_chars, last_chars + 1, 6);
+            last_chars[6] = c;
+            if (strncmp(last_chars, AT_SMS_HEADER, 6) == 0) {
+                found_header = true;
+                crlf_count = 0;
             }
         }
+        else if (!found_message) {
+            if (c == '\n') {
+                crlf_count++;
+            }
+            if (crlf_count == 1 && c != '\r' && c != '\n') {
+                message[message_pos++] = c;
+                found_message = true;
+            }
+        }
+        else {
+            if (c == '\r' || c == '\n') {
+                break;
+            }
+            message[message_pos++] = c;
+        }
     }
-    message[msgPos] = '\0';
-    return foundMsg && (msgPos > 0);
+
+    message[message_pos] = '\0';
+    return found_message && message_pos > 0;
 }
 
 void SimRepository::deleteAllSms() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_DELETE_ALL_SMS);
-    avrMicroRepository->print(LITERAL_RETURN);
-    SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 3000);
+    clear_receive_buffer();
+    serial_.print(AT_DELETE_ALL_SMS);
+    serial_.print(LITERAL_RETURN);
+    wait_for_pattern(LITERAL_OK, 3000UL);
 }
 
 int SimRepository::getSmsCount() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_GET_SMS_STORAGE_STATUS);
-    avrMicroRepository->print(LITERAL_RETURN);
+    clear_receive_buffer();
+    serial_.print(AT_GET_SMS_STORAGE_STATUS);
+    serial_.print(LITERAL_RETURN);
 
-    char buffer[64];
-    int bufPos = 0;
-    unsigned long start = avrMicroRepository->get_millis();
+    char buffer[sim_response_buffer_size];
+    read_response(buffer, sim_response_buffer_size, 2000UL);
 
-    // Attendi una risposta (max 2 secondi)
-    while (avrMicroRepository->get_millis() - start < 2000 && bufPos < (int)sizeof(buffer) - 1) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-			//Serial.print(c); // Debug: stampa il carattere ricevuto
-            buffer[bufPos++] = c;
-        }
-    }
-    buffer[bufPos] = '\0';
-
-    // Cerca la riga che inizia con "+CPMS:"
     char* ptr = strstr(buffer, AT_SMS_STORAGE_HEADER);
-    if (!ptr) return -1; // non trovato
+    if (ptr == nullptr) {
+        return -1;
+    }
 
-    // Esempio di risposta: +CPMS: "SM",2,30,...
-    ptr = strchr(ptr, ','); // primo ','
-    if (!ptr) return -1;
-    int num_used = atoi(ptr + 1); // il primo numero dopo il ','
+    ptr = strchr(ptr, ',');
+    if (ptr == nullptr) {
+        return -1;
+    }
 
-    return num_used;
+    return atoi(ptr + 1);
 }
 
 bool SimRepository::deleteSmsAt(uint8_t index) {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print(AT_DELETE_SMS_PREFIX);
-    avrMicroRepository->print(index);
-    avrMicroRepository->print(LITERAL_RETURN);
-
-    // Attendi conferma "OK" o timeout
-    return SerialUtils::wait_for_pattern(*this->avrMicroRepository, LITERAL_OK, 2000);
+    clear_receive_buffer();
+    serial_.print(AT_DELETE_SMS_PREFIX);
+    serial_.print(index);
+    serial_.print(LITERAL_RETURN);
+    return wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 uint8_t SimRepository::findSmsWithContent(const char* pattern) {
-    if (this->isSmsReceiveInitialized == false) {
+    if (pattern == nullptr) {
+        return 0;
+    }
+
+    if (!is_sms_receive_initialized_) {
         initSmsReception();
     }
-	uint8_t smsCount = getSmsCount();
-    char buffer[avrMicroRepository->getSerialBufferSize()];
-    for (uint8_t i = 1; i <= smsCount; ++i) {
-        if (readSms(i, buffer)) {
-            if (strcmp(buffer, pattern) == 0) {
-                return i; // trovato esattamente
+
+    int sms_count = getSmsCount();
+    if (sms_count <= 0) {
+        return 0;
+    }
+
+    char buffer[sim_sms_message_buffer_size];
+    for (uint8_t i = 1; i <= static_cast<uint8_t>(sms_count); ++i) {
+        if (readSms(i, buffer) && strcmp(buffer, pattern) == 0) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+bool SimRepository::isRegisteredToNetwork() {
+    clear_receive_buffer();
+    serial_.print(AT_NETWORK_REGISTRATION);
+    serial_.print(LITERAL_RETURN);
+
+    char buffer[sim_small_response_buffer_size];
+    read_response(buffer, sim_small_response_buffer_size, 2000UL);
+
+    char* creg = strstr(buffer, "+CREG:");
+    if (creg == nullptr) {
+        return false;
+    }
+
+    char* comma = strchr(creg, ',');
+    if (comma == nullptr) {
+        return false;
+    }
+
+    int stat = atoi(comma + 1);
+    return stat == 1 || stat == 5;
+}
+
+int SimRepository::getSignalStrength() {
+    clear_receive_buffer();
+    serial_.print(AT_SIGNAL_STRENGTH);
+    serial_.print(LITERAL_RETURN);
+
+    char buffer[sim_small_response_buffer_size];
+    read_response(buffer, sim_small_response_buffer_size, 2000UL);
+
+    char* csq = strstr(buffer, "+CSQ:");
+    if (csq == nullptr) {
+        return -1;
+    }
+
+    int rssi = atoi(csq + 5);
+    if (rssi >= 0 && rssi <= 31) {
+        return rssi;
+    }
+
+    return -1;
+}
+
+bool SimRepository::isGprsAttached() {
+    clear_receive_buffer();
+    serial_.print(AT_GPRS_ATTACHED);
+    serial_.print(LITERAL_RETURN);
+
+    char buffer[sim_small_response_buffer_size];
+    read_response(buffer, sim_small_response_buffer_size, 2000UL);
+
+    char* ptr = strstr(buffer, "+CGATT:");
+    if (ptr == nullptr) {
+        return false;
+    }
+
+    int status = atoi(ptr + 7);
+    return status == 1;
+}
+
+void SimRepository::clear_receive_buffer() {
+    while (serial_.available() > 0) {
+        serial_.read();
+    }
+}
+
+bool SimRepository::wait_for_pattern(const char* pattern, unsigned long timeout_ms) {
+    if (pattern == nullptr || pattern[0] == '\0') {
+        return false;
+    }
+
+    const char* match = pattern;
+    unsigned long start = millis();
+    while (static_cast<unsigned long>(millis() - start) < timeout_ms) {
+        if (serial_.available() <= 0) {
+            continue;
+        }
+
+        int read_value = serial_.read();
+        if (read_value < 0) {
+            continue;
+        }
+
+        char c = static_cast<char>(read_value);
+        if (c == *match) {
+            match++;
+            if (*match == '\0') {
+                return true;
+            }
+        }
+        else {
+            match = (c == pattern[0]) ? pattern + 1 : pattern;
+            if (*match == '\0') {
+                return true;
             }
         }
     }
-    return 0; // non trovato
+
+    return false;
 }
-bool SimRepository::isRegisteredToNetwork() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print("AT+CREG?");
-    avrMicroRepository->print(LITERAL_RETURN);
 
-    char buffer[32];
-    int pos = 0;
-    unsigned long start = avrMicroRepository->get_millis();
+uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned long timeout_ms) {
+    if (buffer == nullptr || buffer_size == 0) {
+        return 0;
+    }
 
-    while (avrMicroRepository->get_millis() - start < 2000 && pos < sizeof(buffer) - 1) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            buffer[pos++] = c;
+    uint8_t pos = 0;
+    unsigned long start = millis();
+    while (static_cast<unsigned long>(millis() - start) < timeout_ms && pos < static_cast<uint8_t>(buffer_size - 1U)) {
+        if (serial_.available() > 0) {
+            int read_value = serial_.read();
+            if (read_value >= 0) {
+                buffer[pos++] = static_cast<char>(read_value);
+            }
         }
     }
+
     buffer[pos] = '\0';
-
-    // Cerca la risposta "+CREG: 0,1" o "+CREG: 0,5"
-    char* creg = strstr(buffer, "+CREG:");
-    if (creg != nullptr) {
-        int n, stat;
-        if (sscanf(creg, "+CREG: %d,%d", &n, &stat) == 2) {
-            return (stat == 1 || stat == 5); // 1: registrato, 5: roaming
-        }
-    }
-    return false; // Non registrato
-}
-int SimRepository::getSignalStrength() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print("AT+CSQ");
-    avrMicroRepository->print(LITERAL_RETURN);
-    char buffer[32];
-    int pos = 0;
-    unsigned long start = avrMicroRepository->get_millis();
-    while (avrMicroRepository->get_millis() - start < 2000 && pos < sizeof(buffer) - 1) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            buffer[pos++] = c;
-        }
-    }
-    buffer[pos] = '\0';
-    // Cerca "+CSQ: " nella risposta
-    char* csq = strstr(buffer, "+CSQ:");
-    if (csq != nullptr) {
-        int rssi, ber;
-        if (sscanf(csq, "+CSQ: %d,%d", &rssi, &ber) == 2) {
-            if (rssi >= 0 && rssi <= 31) return rssi;
-        }
-    }
-    return -1; // Errore o fuori range
-}
-bool SimRepository::isGprsAttached() {
-    avrMicroRepository->clearBuffer();
-    avrMicroRepository->print("AT+CGATT?");
-    avrMicroRepository->print(LITERAL_RETURN);
-
-    char buffer[32];
-    int pos = 0;
-    unsigned long start = avrMicroRepository->get_millis();
-
-    while (avrMicroRepository->get_millis() - start < 2000 && pos < sizeof(buffer) - 1) {
-        if (avrMicroRepository->available()) {
-            char c = avrMicroRepository->read();
-            buffer[pos++] = c;
-        }
-    }
-    buffer[pos] = '\0';
-
-    char* ptr = strstr(buffer, "+CGATT:");
-    if (ptr != nullptr) {
-        int status;
-        if (sscanf(ptr, "+CGATT: %d", &status) == 1) {
-            return status == 1; // 1: attached
-        }
-    }
-
-    return false; // errore o non attached
+    return pos;
 }
 
+bool SimRepository::listen() {
+    return serial_.listen();
+}
 
+bool SimRepository::is_listening() {
+    return serial_.isListening();
+}
 
-
-
-
-
+bool SimRepository::stop_listening() {
+    return serial_.stopListening();
+}
 
