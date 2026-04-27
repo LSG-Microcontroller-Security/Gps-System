@@ -14,6 +14,14 @@ mf_activity_NmeaGpsActivity::mf_activity_NmeaGpsActivity(mf_repository_NmeaGpsRe
     nmea_gps_repository_.begin();
 }
 
+mf_repository_NmeaGpsRepository& mf_activity_NmeaGpsActivity::get_repository() {
+    return nmea_gps_repository_;
+}
+
+const mf_repository_NmeaGpsRepository& mf_activity_NmeaGpsActivity::get_repository() const {
+    return nmea_gps_repository_;
+}
+
 bool mf_activity_NmeaGpsActivity::try_read_data(GpsConnectionStatus& out_data, uint8_t max_sentences_to_read) {
     clear_data(out_data);
     bool parsed_any_sentence = false;

@@ -17,6 +17,18 @@ void mf_repository_NmeaGpsRepository::begin() {
     clear_receive_buffer();
 }
 
+bool mf_repository_NmeaGpsRepository::listen() {
+    return serial_.listen();
+}
+
+bool mf_repository_NmeaGpsRepository::is_listening() {
+    return serial_.isListening();
+}
+
+bool mf_repository_NmeaGpsRepository::stop_listening() {
+    return serial_.stopListening();
+}
+
 void mf_repository_NmeaGpsRepository::set_timeout(unsigned long timeout_ms) {
     timeout_ms_ = timeout_ms;
     serial_.setTimeout(timeout_ms_);

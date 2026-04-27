@@ -41,6 +41,9 @@
     <ClCompile Include="src\mf_repository_NmeaGpsRepository.cpp">
       <Filter>repository</Filter>
     </ClCompile>
+    <ClCompile Include="src\mf_repository_SimRepository.cpp">
+      <Filter>repository</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AppConfig.h">
@@ -59,6 +62,9 @@
       <Filter>business</Filter>
     </ClInclude>
     <ClInclude Include="src\mf_repository_NmeaGpsRepository.h">
+      <Filter>repository</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mf_repository_SimRepository.h">
       <Filter>repository</Filter>
     </ClInclude>
   </ItemGroup>

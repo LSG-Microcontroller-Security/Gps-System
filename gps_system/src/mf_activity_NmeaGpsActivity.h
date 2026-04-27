@@ -17,6 +17,8 @@ class IGpsActivity {
 public:
     virtual ~IGpsActivity() = default;
     virtual const GpsConnectionStatus& update_gps_status() = 0;
+    virtual mf_repository_NmeaGpsRepository& get_repository() = 0;
+    virtual const mf_repository_NmeaGpsRepository& get_repository() const = 0;
 };
 
 class mf_activity_NmeaGpsActivity : public IGpsActivity {
@@ -25,6 +27,8 @@ public:
     virtual ~mf_activity_NmeaGpsActivity() = default;
 
     const GpsConnectionStatus& update_gps_status() override;
+    mf_repository_NmeaGpsRepository& get_repository() override;
+    const mf_repository_NmeaGpsRepository& get_repository() const override;
 
 private:
     static const uint8_t nmea_sentence_buffer_length = 83;
