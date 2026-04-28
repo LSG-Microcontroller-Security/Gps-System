@@ -14,6 +14,20 @@
 #include "src/mf_activity_NmeaGpsActivity.h"
 #include "src/GpsSystem_BL.h"
 
+extern unsigned int __heap_start;
+extern void* __brkval;
+
+int freeMemory() {
+    int free_memory;
+    if (__brkval == 0) {
+        free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(&__heap_start);
+    }
+    else {
+        free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(__brkval);
+    }
+    return free_memory;
+}
+
 SoftwareSerial gps_software_serial(AppConfig::gps_software_serial_rx_pin,AppConfig::gps_software_serial_tx_pin);
 SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
 SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
@@ -33,5 +47,7 @@ void loop() {
 	Serial.println(gps_connection_status.latitude_x1000000);
 	//gps_system_bl.call_phone_number("393202445649");
 	Serial.println(gps_system_bl.check_if_sms_arrived());
+    Serial.print(F("Free RAM: "));
+    Serial.println(freeMemory());
 	delay(1000);
 }

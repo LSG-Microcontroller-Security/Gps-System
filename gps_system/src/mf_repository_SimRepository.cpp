@@ -26,9 +26,9 @@
 #define AT_SET_SMS_RECEIVE_IND       "AT+CNMI=1,1,0,0,0"
 
 namespace {
-constexpr uint8_t sim_response_buffer_size = 64;
-constexpr uint8_t sim_small_response_buffer_size = 32;
-constexpr uint8_t sim_sms_message_buffer_size = 64;
+constexpr uint8_t sim_response_buffer_size = 20;
+constexpr uint8_t sim_small_response_buffer_size = 20;
+constexpr uint8_t sim_sms_message_buffer_size = 16;
 }
 
 SimRepository::SimRepository(ISerial& serial, uint8_t power_pin, unsigned long baud_rate)
@@ -213,7 +213,7 @@ int SimRepository::getSmsCount() {
     serial_.print(AT_GET_SMS_STORAGE_STATUS);
     serial_.print(LITERAL_RETURN);
 
-    char buffer[128];
+    char buffer[32];
     read_response(buffer, static_cast<uint8_t>(sizeof(buffer)), 3000UL);
 
     char* header = strstr(buffer, AT_SMS_STORAGE_HEADER);
