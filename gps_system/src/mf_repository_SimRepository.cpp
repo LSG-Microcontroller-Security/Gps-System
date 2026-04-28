@@ -16,7 +16,7 @@
 #define LITERAL_RETURN               "\r\n"
 #define AT_READ_SMS_PREFIX           "AT+CMGR="
 #define AT_DELETE_ALL_SMS            "AT+CMGD=1,4"
-#define AT_SET_SMS_MEMORY            "AT+CPMS=\"SM\""
+#define AT_SET_SMS_MEMORY            "AT+CPMS=\"SM\",\"SM\",\"SM\""
 #define AT_GET_SMS_STORAGE_STATUS    "AT+CPMS?"
 #define AT_SMS_STORAGE_HEADER        "+CPMS:"
 #define AT_DELETE_SMS_PREFIX         "AT+CMGD="
@@ -435,4 +435,3 @@ bool SimRepository::is_listening() {
 bool SimRepository::stop_listening() {
     return serial_.stopListening();
 }
-

@@ -7,7 +7,7 @@
 #include <SoftwareSerial.h>
 #include "AppConfig.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
-#include <mf_repository_AvrMicroRepository.h>
+//#include <mf_repository_AvrMicroRepository.h>
 #include "src/mf_repository_NmeaGpsRepository.h"
 #include "src/mf_repository_SimRepository.h"
 #include "src/mf_activity_NmeaGpsActivity.h"
@@ -21,18 +21,15 @@ SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin
 SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 SimRepository sim800c_repository(sim800c_software_serial_adapter,0, AppConfig::sim800c_serial_baud_rate);
 GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository);
+GpsConnectionStatus last_status = {};
 void setup() {
     Serial.begin(115200);
-	sim800c_repository.listen();
-	sim800c_repository.initSmsReception();
-	sim800c_repository.deleteAllSms();
+	gps_system_bl.startSmsReception();
 }
 void loop() {
     gps_system_bl.read_and_log_coordinates();
+	Serial.println(last_status.longitude_x1000000);
 	//gps_system_bl.call_phone_number("393202445649");
-	sim800c_repository.listen();
-	Serial.println(sim800c_repository.getSmsCount());
-	sim800c_repository.deleteAllSms();
-	sim800c_repository.stop_listening();
+	Serial.println(gps_system_bl.check_if_sms_arrived());
 	delay(1000);
 }

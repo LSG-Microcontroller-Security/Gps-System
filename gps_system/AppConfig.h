@@ -10,4 +10,5 @@ public:
     static constexpr uint8_t sim800c_software_serial_rx_pin = 5U;
     static constexpr uint8_t sim800c_software_serial_tx_pin = 11U;
     static constexpr unsigned long sim800c_serial_baud_rate = 9600UL;
+    static constexpr char phone_number[] = "393202445649";
 };

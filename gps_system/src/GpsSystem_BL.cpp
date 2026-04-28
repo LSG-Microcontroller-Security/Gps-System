@@ -27,6 +27,22 @@ bool GpsSystem_BL::call_phone_number(const char* number) {
 	sim_repository_.listen();
     return sim_repository_.call(number);
 }
+bool GpsSystem_BL::check_if_sms_arrived() {
+    this->sim_repository_.listen();
+    delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+    int sms_count = this->sim_repository_.getSmsCount();
+	delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+	if (sms_count > 0) this->sim_repository_.deleteAllSms(); // Elimino tutti gli SMS dopo aver verificato la loro presenza.    
+    this->sim_repository_.stop_listening();
+	return sms_count > 0;
+}
 void GpsSystem_BL::hang_up_phone_call() {
-    sim_repository_.hangUp();
+    this->sim_repository_.listen();
+    this->sim_repository_.hangUp();
+    this->sim_repository_.stop_listening();
+}
+void GpsSystem_BL::startSmsReception() {
+    this->sim_repository_.listen();
+    this->sim_repository_.initSmsReception();
+    this->sim_repository_.stop_listening();
 }

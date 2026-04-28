@@ -13,10 +13,11 @@ class GpsSystem_BL {
 public:
     explicit GpsSystem_BL(NmeaGpsActivity& gps_activity, SimRepository& sim_repository);
     ~GpsSystem_BL() = default;
-
     bool read_and_log_coordinates();
     bool call_phone_number(const char* number);
+    bool check_if_sms_arrived();
     void hang_up_phone_call();
+    void startSmsReception();
 
 private:
     NmeaGpsActivity& gps_activity_;
