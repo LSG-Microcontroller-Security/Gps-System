@@ -3,23 +3,24 @@
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 #include <Arduino.h>
 #endif
-GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity& gps_activity,SimRepository&   sim_repository)
+GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity& gps_activity,SimRepository&   sim_repository, AvrMicroRepository& avrMicroRepository)
     : gps_activity_(gps_activity),
-      sim_repository_(sim_repository) {
-
+      sim_repository_(sim_repository),  
+      avr_micro_repository_(avrMicroRepository) {   
 }
-bool GpsSystem_BL::read_and_log_coordinates() {
+bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	this->gps_activity_.get_repository().listen();
     const auto gps_status = gps_activity_.update_gps_status();
+    out_status = gps_status;
     if (!gps_status.has_recent_coordinates) {
         return false;
     }
-    float latitude = static_cast<float>(gps_status.latitude_x1000000) / 1000000.0f;
+ /*   float latitude = static_cast<float>(gps_status.latitude_x1000000) / 1000000.0f;
     float longitude = static_cast<float>(gps_status.longitude_x1000000) / 1000000.0f;
     Serial.print("https://www.google.com/maps/search/?api=1&query=");
     Serial.print(latitude, 6);
     Serial.print(",");
-    Serial.println(longitude, 6);
+    Serial.println(longitude, 6);*/
     this->gps_activity_.get_repository().stop_listening();
     return true;
 }
@@ -29,9 +30,9 @@ bool GpsSystem_BL::call_phone_number(const char* number) {
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
     this->sim_repository_.listen();
-    delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+    this->avr_micro_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
     int sms_count = this->sim_repository_.getSmsCount();
-	delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+	this->avr_micro_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
 	if (sms_count > 0) this->sim_repository_.deleteAllSms(); // Elimino tutti gli SMS dopo aver verificato la loro presenza.    
     this->sim_repository_.stop_listening();
 	return sms_count > 0;
