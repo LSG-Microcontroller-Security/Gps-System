@@ -7,8 +7,6 @@
 #include <SoftwareSerial.h>
 #include "AppConfig.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
-#include <mf_adapter_HardwareSerialAdapter.h>
-#include <mf_repository_AvrMicroRepository.h>
 #include "src/mf_repository_NmeaGpsRepository.h"
 #include "src/mf_repository_SimRepository.h"
 #include "src/mf_activity_NmeaGpsActivity.h"
@@ -32,11 +30,10 @@ SoftwareSerial gps_software_serial(AppConfig::gps_software_serial_rx_pin,AppConf
 SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
 SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
 SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-AvrMicroRepository avr_micro_repository(sim800c_software_serial_adapter, mf::commons::commonsLayer::AnalogRefMode::DEFAULT_m, 5.0f);
 NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter);
 NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
 SimRepository sim800c_repository(sim800c_software_serial_adapter,0, AppConfig::sim800c_serial_baud_rate);
-GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository,avr_micro_repository);
+GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository);
 GpsConnectionStatus gps_connection_status = {};
 void setup() {
     Serial.begin(115200);

@@ -4,7 +4,6 @@
 #include <mf_commons_commonsLayer.h>
 #include "mf_repository_SimRepository.h"
 #include "mf_activity_NmeaGpsActivity.h"
-#include <mf_repository_AvrMicroRepository.h>
 
 #if _ON_MOCKING_TESTS && _DEBUG_FOR_SERIAL
 #error "_DEBUG_FOR_SERIAL must be 0 when _ON_MOCKING_TESTS is 1"
@@ -12,7 +11,7 @@
 
 class GpsSystem_BL {
 public:
-    explicit GpsSystem_BL(NmeaGpsActivity& gps_activity, SimRepository& sim_repository,AvrMicroRepository& avrMicroRepository);
+    explicit GpsSystem_BL(NmeaGpsActivity& gps_activity, SimRepository& sim_repository);
     ~GpsSystem_BL() = default;
     bool read_and_log_coordinates(GpsConnectionStatus& out_status);
     bool call_phone_number(const char* number);
@@ -23,5 +22,4 @@ public:
 private:
     NmeaGpsActivity& gps_activity_;
     SimRepository& sim_repository_;
-	AvrMicroRepository& avr_micro_repository_;
 };

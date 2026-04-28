@@ -3,10 +3,9 @@
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 #include <Arduino.h>
 #endif
-GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity& gps_activity,SimRepository&   sim_repository, AvrMicroRepository& avrMicroRepository)
+GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity& gps_activity,SimRepository&   sim_repository)
     : gps_activity_(gps_activity),
-      sim_repository_(sim_repository),  
-      avr_micro_repository_(avrMicroRepository) {   
+      sim_repository_(sim_repository) {
 }
 bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	this->gps_activity_.get_repository().listen();
@@ -30,9 +29,9 @@ bool GpsSystem_BL::call_phone_number(const char* number) {
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
     this->sim_repository_.listen();
-    this->avr_micro_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+    this->sim_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
     int sms_count = this->sim_repository_.getSmsCount();
-	this->avr_micro_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
+    this->sim_repository_.delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
 	if (sms_count > 0) this->sim_repository_.deleteAllSms(); // Elimino tutti gli SMS dopo aver verificato la loro presenza.    
     this->sim_repository_.stop_listening();
 	return sms_count > 0;

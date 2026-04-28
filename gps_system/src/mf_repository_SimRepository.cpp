@@ -29,6 +29,11 @@ namespace {
 constexpr uint8_t sim_response_buffer_size = 20;
 constexpr uint8_t sim_small_response_buffer_size = 20;
 constexpr uint8_t sim_sms_message_buffer_size = 16;
+
+inline void send_at_cmd(ISerial& serial, const char* cmd) {
+    serial.print(cmd);
+    serial.print(LITERAL_RETURN);
+}
 }
 
 SimRepository::SimRepository(ISerial& serial, uint8_t power_pin, unsigned long baud_rate)
@@ -57,22 +62,19 @@ bool SimRepository::call(const char* number) {
 
 void SimRepository::hangUp() {
     clear_receive_buffer();
-    serial_.print(HANGUP_COMMAND);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, HANGUP_COMMAND);
     wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 void SimRepository::setSmsTextMode() {
     clear_receive_buffer();
-    serial_.print(AT_SET_SMS_TEXT_MODE);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
     wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
 void SimRepository::setSmsPduMode() {
     clear_receive_buffer();
-    serial_.print(AT_SET_SMS_PDU_MODE);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SET_SMS_PDU_MODE);
     wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
@@ -109,24 +111,20 @@ void SimRepository::initSmsReception() {
     bool ok = true;
 
     clear_receive_buffer();
-    serial_.print(AT_SET_SMS_MEMORY);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SET_SMS_MEMORY);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     clear_receive_buffer();
-    serial_.print(AT_SET_SMS_TEXT_MODE);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     clear_receive_buffer();
-    serial_.print(AT_SET_SMS_CHARSET);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SET_SMS_CHARSET);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     // CNMI coerente con memorizzazione SMS in storage (SM) per lettura via CPMS/CMGR.
     clear_receive_buffer();
-    serial_.print("AT+CNMI=2,1,0,0,0");
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, "AT+CNMI=2,1,0,0,0");
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     is_sms_receive_initialized_ = ok;
@@ -196,8 +194,7 @@ bool SimRepository::readSms(uint8_t index, char* message) {
 
 void SimRepository::deleteAllSms() {
     clear_receive_buffer();
-    serial_.print(AT_DELETE_ALL_SMS);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_DELETE_ALL_SMS);
     wait_for_pattern(LITERAL_OK, 3000UL);
 }
 
@@ -210,8 +207,7 @@ int SimRepository::getSmsCount() {
     }
 
     clear_receive_buffer();
-    serial_.print(AT_GET_SMS_STORAGE_STATUS);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_GET_SMS_STORAGE_STATUS);
 
     char buffer[32];
     read_response(buffer, static_cast<uint8_t>(sizeof(buffer)), 3000UL);
@@ -285,8 +281,7 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
 
 bool SimRepository::isRegisteredToNetwork() {
     clear_receive_buffer();
-    serial_.print(AT_NETWORK_REGISTRATION);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_NETWORK_REGISTRATION);
 
     char buffer[sim_small_response_buffer_size];
     read_response(buffer, sim_small_response_buffer_size, 2000UL);
@@ -307,8 +302,7 @@ bool SimRepository::isRegisteredToNetwork() {
 
 int SimRepository::getSignalStrength() {
     clear_receive_buffer();
-    serial_.print(AT_SIGNAL_STRENGTH);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_SIGNAL_STRENGTH);
 
     char buffer[sim_small_response_buffer_size];
     read_response(buffer, sim_small_response_buffer_size, 2000UL);
@@ -328,8 +322,7 @@ int SimRepository::getSignalStrength() {
 
 bool SimRepository::isGprsAttached() {
     clear_receive_buffer();
-    serial_.print(AT_GPRS_ATTACHED);
-    serial_.print(LITERAL_RETURN);
+    send_at_cmd(serial_, AT_GPRS_ATTACHED);
 
     char buffer[sim_small_response_buffer_size];
     read_response(buffer, sim_small_response_buffer_size, 2000UL);
@@ -434,4 +427,8 @@ bool SimRepository::is_listening() {
 
 bool SimRepository::stop_listening() {
     return serial_.stopListening();
+}
+
+void SimRepository::delay(unsigned long ms) {
+    ::delay(ms);
 }

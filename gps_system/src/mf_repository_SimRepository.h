@@ -29,6 +29,7 @@ public:
     virtual bool is_listening();
     // Disattiva l'ascolto della seriale quando l'adapter sottostante lo supporta.
     virtual bool stop_listening();
+    virtual void delay(unsigned long ms);
 
 private:
     void clear_receive_buffer();
