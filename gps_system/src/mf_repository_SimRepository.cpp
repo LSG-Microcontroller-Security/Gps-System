@@ -416,7 +416,6 @@ uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned
     return pos;
 }
 
-
 bool SimRepository::listen() {
     return serial_.listen();
 }

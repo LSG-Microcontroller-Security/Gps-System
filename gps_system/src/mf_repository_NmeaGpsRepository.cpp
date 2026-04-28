@@ -1,6 +1,8 @@
 // mf_repository_NmeaGpsRepository.cpp
 #include "mf_repository_NmeaGpsRepository.h"
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS 
 #include <Arduino.h>
+#endif // _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 namespace {
 constexpr unsigned long nmea_gps_default_baud_rate = 9600UL;
 constexpr unsigned long nmea_gps_default_timeout_ms = 1000UL;

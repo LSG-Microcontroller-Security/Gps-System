@@ -1,6 +1,8 @@
 // mf_activity_NmeaGpsActivity.cpp
 #include "mf_activity_NmeaGpsActivity.h"
+#ifdef _DEBUG_FOR_SERIAL
 #include <Arduino.h>
+#endif // _DEBUG_FOR_SERIAL 
 
 namespace {
 constexpr uint8_t max_cycles_without_position_before_stale = 15U;
