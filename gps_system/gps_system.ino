@@ -28,7 +28,6 @@ void setup() {
 }
 void loop() {
     gps_system_bl.read_and_log_coordinates();
-	Serial.println(last_status.longitude_x1000000);
 	//gps_system_bl.call_phone_number("393202445649");
 	Serial.println(gps_system_bl.check_if_sms_arrived());
 	delay(1000);
