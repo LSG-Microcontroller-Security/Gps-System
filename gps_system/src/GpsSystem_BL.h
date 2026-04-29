@@ -11,7 +11,8 @@
 
 class GpsSystem_BL {
 public:
-    explicit GpsSystem_BL(NmeaGpsActivity& gps_activity, SimRepository& sim_repository);
+    explicit GpsSystem_BL(NmeaGpsActivity* gps_activity);
+    explicit GpsSystem_BL(SimRepository* sim_repository);
     ~GpsSystem_BL() = default;
     bool read_and_log_coordinates(GpsConnectionStatus& out_status);
     bool call_phone_number(const char* number);
@@ -20,6 +21,6 @@ public:
     void startSmsReception();
 
 private:
-    NmeaGpsActivity& gps_activity_;
-    SimRepository& sim_repository_;
+    NmeaGpsActivity* gps_activity_;
+    SimRepository* sim_repository_;
 };

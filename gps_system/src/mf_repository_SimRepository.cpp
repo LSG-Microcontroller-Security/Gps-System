@@ -79,6 +79,10 @@ void SimRepository::setSmsPduMode() {
 }
 
 bool SimRepository::sendSms(const char* number, const char* message) {
+    if (number == nullptr || number[0] == '\0' || message == nullptr) {
+        return false;
+    }
+
     clear_receive_buffer();
     serial_.print(AT_SEND_SMS_PREFIX);
     serial_.print(number);
@@ -103,8 +107,7 @@ bool SimRepository::sendSms(const char* number, const char* message) {
 
     serial_.print(message);
     serial_.print(LITERAL_CTRL_Z);
-    delay(1000UL);
-    return true;
+    return wait_for_pattern(LITERAL_OK, 10000UL);
 }
 
 void SimRepository::initSmsReception() {
