@@ -7,9 +7,13 @@
 struct GpsConnectionStatus {
     int32_t latitude_x1000000;
     int32_t longitude_x1000000;
+    int32_t altitude_m_x10;
+    int32_t speed_knots_x100;
     uint8_t cycles_since_last_position;
     bool has_fix;
     bool has_position;
+    bool has_altitude;
+    bool has_speed;
     bool has_recent_coordinates;
 };
 

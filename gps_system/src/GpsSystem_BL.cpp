@@ -1,5 +1,6 @@
 // File: GpsSystem_BL.cpp
 #include "GpsSystem_BL.h"
+#include <stdio.h>
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 #include <Arduino.h>
 #endif
@@ -31,11 +32,41 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	return true;
 }
 bool GpsSystem_BL::call_phone_number(const char* number) {
-	if (sim_repository_ == nullptr) {
-		return false;
+    if (sim_repository_ == nullptr) {
+        return false;
 	}
 	sim_repository_->listen();
-	return sim_repository_->call(number);
+    return sim_repository_->call(number);
+}
+bool GpsSystem_BL::send_sms(const char* number, const GpsSmsData& gps_sms_data) {
+    if (number == nullptr || number[0] == '\0') {
+        return false;
+    }
+    char sms_message[128];
+    const int written = snprintf(
+        sms_message,
+        sizeof(sms_message),
+        "https://www.google.com/maps/search/?api=1&query=%ld.%06ld,%ld.%06ld ALT=%ld.%01ldm SPD=%ld.%02ldkn",
+        gps_sms_data.latitude_x1000000 / 1000000L,
+        labs(gps_sms_data.latitude_x1000000 % 1000000L),
+        gps_sms_data.longitude_x1000000 / 1000000L,
+        labs(gps_sms_data.longitude_x1000000 % 1000000L),
+        gps_sms_data.altitude_m_x10 / 10L,
+        labs(gps_sms_data.altitude_m_x10 % 10L),
+        gps_sms_data.speed_knots_x100 / 100L,
+        labs(gps_sms_data.speed_knots_x100 % 100L));
+
+    if (written <= 0 || written >= static_cast<int>(sizeof(sms_message))) {
+        return false;
+    }
+
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+    Serial.print("sms: ");
+    Serial.println(sms_message);
+#endif
+
+    (void)sms_message;
+    return true;
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
 	if (sim_repository_ == nullptr) {

@@ -55,6 +55,10 @@ const GpsConnectionStatus& NmeaGpsActivity::update_gps_status() {
             has_last_coordinates_ = true;
             last_status_.latitude_x1000000 = parsed_data.latitude_x1000000;
             last_status_.longitude_x1000000 = parsed_data.longitude_x1000000;
+            last_status_.altitude_m_x10 = parsed_data.altitude_m_x10;
+            last_status_.speed_knots_x100 = parsed_data.speed_knots_x100;
+            last_status_.has_altitude = parsed_data.has_altitude;
+            last_status_.has_speed = parsed_data.has_speed;
             last_status_.cycles_since_last_position = 0U;
             last_status_.has_recent_coordinates = true;
             return last_status_;
@@ -67,6 +71,10 @@ const GpsConnectionStatus& NmeaGpsActivity::update_gps_status() {
     if (!has_last_coordinates_) {
         last_status_.latitude_x1000000 = 0L;
         last_status_.longitude_x1000000 = 0L;
+        last_status_.altitude_m_x10 = 0L;
+        last_status_.speed_knots_x100 = 0L;
+        last_status_.has_altitude = false;
+        last_status_.has_speed = false;
         last_status_.cycles_since_last_position = 0U;
         last_status_.has_recent_coordinates = false;
         return last_status_;
@@ -136,6 +144,15 @@ bool NmeaGpsActivity::parse_gga_sentence(const char* sentence, GpsConnectionStat
         data.has_position = true;
     }
 
+    const char* altitude_field = nullptr;
+    uint8_t altitude_length = 0;
+    int32_t altitude_m_x10 = 0L;
+    if (get_field(sentence, 9, altitude_field, altitude_length) &&
+        parse_decimal_scaled(altitude_field, altitude_length, 1U, altitude_m_x10)) {
+        data.altitude_m_x10 = altitude_m_x10;
+        data.has_altitude = true;
+    }
+
     return true;
 }
 
@@ -178,6 +195,16 @@ bool NmeaGpsActivity::parse_rmc_sentence(const char* sentence, GpsConnectionStat
         data.latitude_x1000000 = latitude_x1000000;
         data.longitude_x1000000 = longitude_x1000000;
         data.has_position = true;
+    }
+
+    const char* speed_field = nullptr;
+    uint8_t speed_length = 0;
+    int32_t speed_knots_x100 = 0L;
+    if (get_field(sentence, 7, speed_field, speed_length) &&
+        parse_decimal_scaled(speed_field, speed_length, 2U, speed_knots_x100) &&
+        speed_knots_x100 >= 0L) {
+        data.speed_knots_x100 = speed_knots_x100;
+        data.has_speed = true;
     }
 
     return true;
@@ -390,8 +417,12 @@ bool NmeaGpsActivity::parse_coordinate_field(
 void NmeaGpsActivity::clear_data(GpsConnectionStatus& data) const {
     data.latitude_x1000000 = 0L;
     data.longitude_x1000000 = 0L;
+    data.altitude_m_x10 = 0L;
+    data.speed_knots_x100 = 0L;
     data.cycles_since_last_position = 0U;
     data.has_fix = false;
     data.has_position = false;
+    data.has_altitude = false;
+    data.has_speed = false;
     data.has_recent_coordinates = false;
 }

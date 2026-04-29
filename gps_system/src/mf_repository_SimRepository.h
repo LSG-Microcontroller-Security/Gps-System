@@ -31,7 +31,6 @@ public:
     virtual void delay(unsigned long ms);
 #else
     ~SimRepository() = default;
-
     bool call(const char* number);
     void hangUp();
     void setSmsTextMode();
