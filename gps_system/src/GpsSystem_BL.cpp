@@ -6,11 +6,13 @@
 #endif
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
-	sim_repository_(nullptr) {
+	sim_repository_(nullptr),
+    eeprom_repository_(nullptr) {
 }
-GpsSystem_BL::GpsSystem_BL(SimRepository* sim_repository)
+GpsSystem_BL::GpsSystem_BL(SimRepository* sim_repository, EepromRepository* eeprom_repository)
 	: gps_activity_(nullptr),
-	sim_repository_(sim_repository) {
+	sim_repository_(sim_repository),
+    eeprom_repository_(eeprom_repository) {
 }
 bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	if (gps_activity_ == nullptr) {
@@ -31,14 +33,23 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	this->gps_activity_->get_repository().stop_listening();
 	return true;
 }
-bool GpsSystem_BL::call_phone_number(const char* number) {
+bool GpsSystem_BL::call_phone_number() {
     if (sim_repository_ == nullptr) {
         return false;
 	}
+    char number[sizeof(APP_PHONE_NUMBER)] = {};
+    if (!load_phone_number_with_prefix(number)) {
+        return false;
+    }
 	sim_repository_->listen();
     return sim_repository_->call(number);
 }
-bool GpsSystem_BL::send_sms(const char* number, const GpsSmsData& gps_sms_data) {
+bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
+    char number[sizeof(APP_PHONE_NUMBER)] = {};
+    if (!load_phone_number_with_prefix(number)) {
+        return false;
+    }
+
     if (number == nullptr || number[0] == '\0') {
         return false;
     }
@@ -95,4 +106,45 @@ void GpsSystem_BL::startSmsReception() {
 	this->sim_repository_->listen();
 	this->sim_repository_->initSmsReception();
 	this->sim_repository_->stop_listening();
+}
+bool GpsSystem_BL::load_phone_number_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
+    if (eeprom_repository_ == nullptr) {
+        return false;
+    }
+
+    uint8_t out_index = 0U;
+    for (uint8_t i = 0U; APP_PHONE_PREFIX[i] != '\0'; ++i) {
+        out_phone_number[out_index++] = APP_PHONE_PREFIX[i];
+    }
+
+    for (uint8_t i = 0U; i < APP_PHONE_LOCAL_NUMBER_LENGTH; ++i) {
+        uint8_t value = 0U;
+        if (!eeprom_repository_->read_uint8(i, value)) {
+            return false;
+        }
+        const char c = static_cast<char>(value);
+        if (c < '0' || c > '9') {
+            return false;
+        }
+        out_phone_number[out_index++] = c;
+    }
+    out_phone_number[out_index] = '\0';
+    return true;
+}
+
+bool GpsSystem_BL::initialize_phone_local_number(
+    EepromRepository& eeprom_repository,
+    const char (&phone_local_number)[APP_PHONE_LOCAL_NUMBER_LENGTH + 1U]) {
+    for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
+        const char c = phone_local_number[index];
+        if (c < '0' || c > '9') {
+            return false;
+        }
+
+        if (!eeprom_repository.write_uint8(index, static_cast<uint8_t>(c))) {
+            return false;
+        }
+    }
+
+    return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
