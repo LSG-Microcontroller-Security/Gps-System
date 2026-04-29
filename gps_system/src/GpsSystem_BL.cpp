@@ -131,10 +131,7 @@ bool GpsSystem_BL::load_phone_number_with_prefix(char (&out_phone_number)[sizeof
     out_phone_number[out_index] = '\0';
     return true;
 }
-
-bool GpsSystem_BL::initialize_phone_local_number(
-    EepromRepository& eeprom_repository,
-    const char (&phone_local_number)[APP_PHONE_LOCAL_NUMBER_LENGTH + 1U]) {
+bool GpsSystem_BL::initialize_phone_local_number(EepromRepository& eeprom_repository, const char (&phone_local_number)[APP_PHONE_LOCAL_NUMBER_LENGTH + 1U]) {
     for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
         const char c = phone_local_number[index];
         if (c < '0' || c > '9') {

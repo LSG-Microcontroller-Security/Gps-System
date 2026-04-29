@@ -64,7 +64,7 @@ void setup() {
 void loop() {
     run_gps_flow();
     run_sim_flow();
-    Serial.print(F("Free RAM after SIM: "));
-    Serial.println(freeMemory());
+   /* Serial.print(F("Free RAM after SIM: "));
+    Serial.println(freeMemory());*/
 	delay(1000);
 }
