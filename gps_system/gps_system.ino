@@ -28,12 +28,15 @@ int freeMemory() {
 
 SoftwareSerial gps_software_serial(AppConfig::gps_software_serial_rx_pin,AppConfig::gps_software_serial_tx_pin);
 SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
-SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
-SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter);
 NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
+
+SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
+SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 SimRepository sim800c_repository(sim800c_software_serial_adapter,0, AppConfig::sim800c_serial_baud_rate);
+
 GpsSystem_BL gps_system_bl(nmea_gps_activity,sim800c_repository);
+
 GpsConnectionStatus gps_connection_status = {};
 void setup() {
     Serial.begin(115200);
