@@ -1,14 +1,13 @@
 #pragma once
-#include <stdint.h>
 
-class AppConfig {
-public:
-    static constexpr uint8_t gps_software_serial_rx_pin = 8U;
-    static constexpr uint8_t gps_software_serial_tx_pin = 7U;
-    static constexpr unsigned long gps_serial_baud_rate = 9600UL;
+#define APP_GPS_SW_SERIAL_RX_PIN 8U
+#define APP_GPS_SW_SERIAL_TX_PIN 7U
+#define APP_GPS_SERIAL_BAUD_RATE 9600L
 
-    static constexpr uint8_t sim800c_software_serial_rx_pin = 5U;
-    static constexpr uint8_t sim800c_software_serial_tx_pin = 11U;
-    static constexpr unsigned long sim800c_serial_baud_rate = 9600UL;
-    static constexpr char phone_number[] = "393202445649";
-};
+#define APP_SIM_SW_SERIAL_RX_PIN 5U
+#define APP_SIM_SW_SERIAL_TX_PIN 11U
+#define APP_SIM_SERIAL_BAUD_RATE 9600L
+
+#define APP_PHONE_PREFIX "39"
+#define APP_PHONE_LOCAL_NUMBER "3202445649"
+#define APP_PHONE_NUMBER APP_PHONE_PREFIX APP_PHONE_LOCAL_NUMBER

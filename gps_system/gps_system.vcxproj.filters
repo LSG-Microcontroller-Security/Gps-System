@@ -50,6 +50,9 @@
     <ClCompile Include="src\mf_repository_SimRepository.cpp">
       <Filter>repository</Filter>
     </ClCompile>
+    <ClCompile Include="src\mf_repository_EepromRepository.cpp">
+      <Filter>repository</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.gps_system.vsarduino.h">
@@ -72,6 +75,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h">
       <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mf_repository_EepromRepository.h">
+      <Filter>repository</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

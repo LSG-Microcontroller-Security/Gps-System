@@ -25,18 +25,17 @@ int freeMemory() {
 }
 GpsConnectionStatus gps_connection_status = {};
 void run_gps_flow() {
-    SoftwareSerial gps_software_serial(AppConfig::gps_software_serial_rx_pin, AppConfig::gps_software_serial_tx_pin);
+    SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
     NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter);
     NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
     GpsSystem_BL gps_bl(&nmea_gps_activity);
     gps_bl.read_and_log_coordinates(gps_connection_status);
-    Serial.println(gps_connection_status.latitude_x1000000);
 }
 void run_sim_flow() {
-    SoftwareSerial sim800c_software_serial(AppConfig::sim800c_software_serial_rx_pin, AppConfig::sim800c_software_serial_tx_pin);
+    SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, AppConfig::sim800c_serial_baud_rate);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
     GpsSystem_BL sim_bl(&sim800c_repository);
     sim_bl.startSmsReception();
     if (sim_bl.check_if_sms_arrived()) {
@@ -46,9 +45,9 @@ void run_sim_flow() {
             gps_connection_status.altitude_m_x10,
             gps_connection_status.speed_knots_x100
         };
-        sim_bl.send_sms("393202445649", gps_sms_data);
+        sim_bl.send_sms(APP_PHONE_NUMBER, gps_sms_data);
     }
-    //sim_bl.call_phone_number("393202445649");
+    //sim_bl.call_phone_number(APP_PHONE_NUMBER);
 }
 void setup() {
     Serial.begin(115200);
@@ -56,7 +55,7 @@ void setup() {
 void loop() {
     run_gps_flow();
     run_sim_flow();
-    /*Serial.print(F("Free RAM after SIM: "));
-    Serial.println(freeMemory());*/
+    Serial.print(F("Free RAM after SIM: "));
+    Serial.println(freeMemory());
 	delay(1000);
 }
