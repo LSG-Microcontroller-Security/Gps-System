@@ -30,7 +30,6 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	   Serial.print(latitude, 6);
 	   Serial.print(",");
 	   Serial.println(longitude, 6);*/
-	this->gps_activity_->get_repository().stop_listening();
 	return true;
 }
 bool GpsSystem_BL::call_phone_number() {
@@ -45,15 +44,19 @@ bool GpsSystem_BL::call_phone_number() {
     return sim_repository_->call(number);
 }
 bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
+    if (sim_repository_ == nullptr) {
+        return false;
+    }
+
     char number[sizeof(APP_PHONE_NUMBER)] = {};
     if (!load_phone_number_with_prefix(number)) {
         return false;
     }
 
-    if (number == nullptr || number[0] == '\0') {
+    if (number[0] == '\0') {
         return false;
     }
-    char sms_message[128];
+    char sms_message[112];
     const int written = snprintf(
         sms_message,
         sizeof(sms_message),
@@ -76,8 +79,9 @@ bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
     Serial.println(sms_message);
 #endif
 
-    (void)sms_message;
-    return true;
+    sim_repository_->listen();
+    const bool is_sent = sim_repository_->sendSms(number, sms_message);
+    return is_sent;
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
 	if (sim_repository_ == nullptr) {
@@ -87,17 +91,15 @@ bool GpsSystem_BL::check_if_sms_arrived() {
 	this->sim_repository_->delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
 	int sms_count = this->sim_repository_->getSmsCount();
 	this->sim_repository_->delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
-	if (sms_count > 0) this->sim_repository_->deleteAllSms(); // Elimino tutti gli SMS dopo aver verificato la loro presenza.
-	this->sim_repository_->stop_listening();
 	return sms_count > 0;
 }
+
 void GpsSystem_BL::hang_up_phone_call() {
 	if (sim_repository_ == nullptr) {
 		return;
 	}
 	this->sim_repository_->listen();
 	this->sim_repository_->hangUp();
-	this->sim_repository_->stop_listening();
 }
 void GpsSystem_BL::startSmsReception() {
 	if (sim_repository_ == nullptr) {
@@ -105,7 +107,6 @@ void GpsSystem_BL::startSmsReception() {
 	}
 	this->sim_repository_->listen();
 	this->sim_repository_->initSmsReception();
-	this->sim_repository_->stop_listening();
 }
 bool GpsSystem_BL::load_phone_number_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
     if (eeprom_repository_ == nullptr) {

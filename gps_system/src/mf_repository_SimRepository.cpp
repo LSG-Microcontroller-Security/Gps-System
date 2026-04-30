@@ -23,17 +23,34 @@
 #define AT_NETWORK_REGISTRATION      "AT+CREG?"
 #define AT_SIGNAL_STRENGTH           "AT+CSQ"
 #define AT_GPRS_ATTACHED             "AT+CGATT?"
-#define AT_SET_SMS_RECEIVE_IND       "AT+CNMI=1,1,0,0,0"
 
 namespace {
-constexpr uint8_t sim_response_buffer_size = 20;
-constexpr uint8_t sim_small_response_buffer_size = 20;
-constexpr uint8_t sim_sms_message_buffer_size = 16;
+    constexpr uint8_t sim_response_buffer_size = 20;
+    constexpr uint8_t sim_small_response_buffer_size = 20;
+    constexpr uint8_t sim_sms_message_buffer_size = 16;
 
-inline void send_at_cmd(ISerial& serial, const char* cmd) {
-    serial.print(cmd);
-    serial.print(LITERAL_RETURN);
-}
+    inline void send_at_cmd(ISerial& serial, const char* cmd) {
+        serial.print(cmd);
+        serial.write((uint8_t)'\r');
+    }
+
+    inline void write_uint8(ISerial& serial, uint8_t value) {
+        if (value >= 100U) {
+            serial.write((uint8_t)('0' + (value / 100U)));
+            value %= 100U;
+            serial.write((uint8_t)('0' + (value / 10U)));
+            serial.write((uint8_t)('0' + (value % 10U)));
+            return;
+        }
+
+        if (value >= 10U) {
+            serial.write((uint8_t)('0' + (value / 10U)));
+            serial.write((uint8_t)('0' + (value % 10U)));
+            return;
+        }
+
+        serial.write((uint8_t)('0' + value));
+    }
 }
 
 SimRepository::SimRepository(ISerial& serial, uint8_t power_pin, unsigned long baud_rate)
@@ -45,8 +62,8 @@ bool SimRepository::call(const char* number) {
     clear_receive_buffer();
     serial_.print(ATD_COMMAND);
     serial_.print(number);
-    serial_.print(";");
-    serial_.print("\r");
+    serial_.write((uint8_t)';');
+    serial_.write((uint8_t)'\r');
 
     unsigned long start = millis();
     while (static_cast<unsigned long>(millis() - start) < 5000UL) {
@@ -57,6 +74,7 @@ bool SimRepository::call(const char* number) {
             }
         }
     }
+
     return false;
 }
 
@@ -86,11 +104,12 @@ bool SimRepository::sendSms(const char* number, const char* message) {
     clear_receive_buffer();
     serial_.print(AT_SEND_SMS_PREFIX);
     serial_.print(number);
-    serial_.print("\"");
-    serial_.print(LITERAL_RETURN);
+    serial_.write((uint8_t)'"');
+    serial_.write((uint8_t)'\r');
 
     unsigned long start = millis();
     bool got_prompt = false;
+
     while (static_cast<unsigned long>(millis() - start) < 3000UL) {
         if (serial_.available() > 0) {
             int read_value = serial_.read();
@@ -106,7 +125,8 @@ bool SimRepository::sendSms(const char* number, const char* message) {
     }
 
     serial_.print(message);
-    serial_.print(LITERAL_CTRL_Z);
+    serial_.write((uint8_t)LITERAL_CTRL_Z);
+
     return wait_for_pattern(LITERAL_OK, 10000UL);
 }
 
@@ -125,7 +145,6 @@ void SimRepository::initSmsReception() {
     send_at_cmd(serial_, AT_SET_SMS_CHARSET);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
-    // CNMI coerente con memorizzazione SMS in storage (SM) per lettura via CPMS/CMGR.
     clear_receive_buffer();
     send_at_cmd(serial_, "AT+CNMI=2,1,0,0,0");
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
@@ -133,27 +152,31 @@ void SimRepository::initSmsReception() {
     is_sms_receive_initialized_ = ok;
 }
 
-
 bool SimRepository::readSms(uint8_t index, char* message) {
+	serial_.listen();
     if (message == nullptr) {
         return false;
     }
 
+    message[0] = '\0';
+
     if (!is_sms_receive_initialized_) {
         initSmsReception();
+        if (!is_sms_receive_initialized_) {
+            return false;
+        }
     }
 
     clear_receive_buffer();
-    serial_.print(AT_READ_SMS_PREFIX);
-    serial_.print(index);
-    serial_.print(LITERAL_RETURN);
 
-    bool found_header = false;
-    bool found_message = false;
-    uint8_t message_pos = 0;
-    uint8_t crlf_count = 0;
+    serial_.print(AT_READ_SMS_PREFIX);
+    write_uint8(serial_, index);
+    serial_.write((uint8_t)'\r');
+
+    uint8_t state = 0U;
+    uint8_t header_pos = 0U;
+    uint8_t message_pos = 0U;
     unsigned long start = millis();
-    char last_chars[7] = { 0 };
 
     while (static_cast<unsigned long>(millis() - start) < 2500UL && message_pos < static_cast<uint8_t>(sim_sms_message_buffer_size - 1U)) {
         if (serial_.available() <= 0) {
@@ -161,38 +184,58 @@ bool SimRepository::readSms(uint8_t index, char* message) {
         }
 
         int read_value = serial_.read();
+
         if (read_value < 0) {
             continue;
         }
 
         char c = static_cast<char>(read_value);
-        if (!found_header) {
-            memmove(last_chars, last_chars + 1, 6);
-            last_chars[6] = c;
-            if (strncmp(last_chars, AT_SMS_HEADER, 6) == 0) {
-                found_header = true;
-                crlf_count = 0;
+
+
+
+        if (state == 0U) {
+            if (c == AT_SMS_HEADER[header_pos]) {
+                ++header_pos;
+
+                if (AT_SMS_HEADER[header_pos] == '\0') {
+                    state = 1U;
+                }
             }
+            else {
+                header_pos = (c == AT_SMS_HEADER[0]) ? 1U : 0U;
+            }
+
+            continue;
         }
-        else if (!found_message) {
+
+        if (state == 1U) {
             if (c == '\n') {
-                crlf_count++;
+                state = 2U;
             }
-            if (crlf_count == 1 && c != '\r' && c != '\n') {
-                message[message_pos++] = c;
-                found_message = true;
-            }
+
+            continue;
         }
-        else {
+
+        if (state == 2U) {
             if (c == '\r' || c == '\n') {
-                break;
+                continue;
             }
+
             message[message_pos++] = c;
+            state = 3U;
+            continue;
         }
+
+        if (c == '\r' || c == '\n') {
+            break;
+        }
+
+        message[message_pos++] = c;
     }
 
     message[message_pos] = '\0';
-    return found_message && message_pos > 0;
+
+    return message_pos > 0U;
 }
 
 void SimRepository::deleteAllSms() {
@@ -204,6 +247,7 @@ void SimRepository::deleteAllSms() {
 int SimRepository::getSmsCount() {
     if (!is_sms_receive_initialized_) {
         initSmsReception();
+
         if (!is_sms_receive_initialized_) {
             return -1;
         }
@@ -220,7 +264,6 @@ int SimRepository::getSmsCount() {
         return -1;
     }
 
-    // Formato tipico: +CPMS: "SM",<used>,<total>[,...]
     char* first_comma = strchr(header, ',');
     if (first_comma == nullptr) {
         return -1;
@@ -234,12 +277,13 @@ int SimRepository::getSmsCount() {
     return used;
 }
 
-
 bool SimRepository::deleteSmsAt(uint8_t index) {
     clear_receive_buffer();
+
     serial_.print(AT_DELETE_SMS_PREFIX);
-    serial_.print(index);
-    serial_.print(LITERAL_RETURN);
+    write_uint8(serial_, index);
+    serial_.write((uint8_t)'\r');
+
     return wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
@@ -250,6 +294,7 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
 
     if (!is_sms_receive_initialized_) {
         initSmsReception();
+
         if (!is_sms_receive_initialized_) {
             return 0;
         }
@@ -262,10 +307,9 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
 
     char buffer[sim_sms_message_buffer_size];
 
-    // Gli indici SMS reali possono avere buchi: cerco su una finestra piu' ampia.
     uint8_t max_index_to_scan = static_cast<uint8_t>(sms_count + 10);
     if (max_index_to_scan < static_cast<uint8_t>(sms_count)) {
-        max_index_to_scan = 255; // protezione overflow
+        max_index_to_scan = 255;
     }
 
     for (uint8_t i = 1; i <= max_index_to_scan; ++i) {
@@ -280,7 +324,6 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
 
     return 0;
 }
-
 
 bool SimRepository::isRegisteredToNetwork() {
     clear_receive_buffer();
@@ -300,6 +343,7 @@ bool SimRepository::isRegisteredToNetwork() {
     }
 
     int stat = atoi(comma + 1);
+
     return stat == 1 || stat == 5;
 }
 
@@ -316,6 +360,7 @@ int SimRepository::getSignalStrength() {
     }
 
     int rssi = atoi(csq + 5);
+
     if (rssi >= 0 && rssi <= 31) {
         return rssi;
     }
@@ -336,6 +381,7 @@ bool SimRepository::isGprsAttached() {
     }
 
     int status = atoi(ptr + 7);
+
     return status == 1;
 }
 
@@ -352,25 +398,30 @@ bool SimRepository::wait_for_pattern(const char* pattern, unsigned long timeout_
 
     const char* match = pattern;
     unsigned long start = millis();
+
     while (static_cast<unsigned long>(millis() - start) < timeout_ms) {
         if (serial_.available() <= 0) {
             continue;
         }
 
         int read_value = serial_.read();
+
         if (read_value < 0) {
             continue;
         }
 
         char c = static_cast<char>(read_value);
+
         if (c == *match) {
-            match++;
+            ++match;
+
             if (*match == '\0') {
                 return true;
             }
         }
         else {
             match = (c == pattern[0]) ? pattern + 1 : pattern;
+
             if (*match == '\0') {
                 return true;
             }
@@ -381,20 +432,20 @@ bool SimRepository::wait_for_pattern(const char* pattern, unsigned long timeout_
 }
 
 uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned long timeout_ms) {
-    if (buffer == nullptr || buffer_size == 0) {
+    if (buffer == nullptr || buffer_size == 0U) {
         return 0;
     }
 
-    uint8_t pos = 0;
+    uint8_t pos = 0U;
     unsigned long start = millis();
 
-    while (static_cast<unsigned long>(millis() - start) < timeout_ms &&
-        pos < static_cast<uint8_t>(buffer_size - 1U)) {
+    while (static_cast<unsigned long>(millis() - start) < timeout_ms && pos < static_cast<uint8_t>(buffer_size - 1U)) {
         if (serial_.available() <= 0) {
             continue;
         }
 
         int read_value = serial_.read();
+
         if (read_value < 0) {
             continue;
         }
@@ -402,20 +453,17 @@ uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned
         buffer[pos++] = static_cast<char>(read_value);
         buffer[pos] = '\0';
 
-        // Stop anticipato appena arriva terminatore modem.
-        if (strstr(buffer, "\r\nOK\r\n") != nullptr ||
-            strstr(buffer, "\r\nERROR\r\n") != nullptr) {
+        if (strstr(buffer, "\r\nOK\r\n") != nullptr || strstr(buffer, "\r\nERROR\r\n") != nullptr) {
             break;
         }
 
-        // In alcuni modem il terminatore puo' arrivare come "OK\r\n".
-        if (strstr(buffer, "OK\r\n") != nullptr ||
-            strstr(buffer, "ERROR\r\n") != nullptr) {
+        if (strstr(buffer, "OK\r\n") != nullptr || strstr(buffer, "ERROR\r\n") != nullptr) {
             break;
         }
     }
 
     buffer[pos] = '\0';
+
     return pos;
 }
 

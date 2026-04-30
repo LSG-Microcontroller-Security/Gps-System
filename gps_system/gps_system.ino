@@ -45,6 +45,16 @@ void run_sim_flow() {
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     sim_bl.startSmsReception();
     if (sim_bl.check_if_sms_arrived()) {
+        char message_buffer[20];
+        for (uint8_t i = 1; i <= 20; ++i) {
+            if (sim800c_repository.readSms(i, message_buffer)) {
+                Serial.print("SMS trovato in indice ");
+                Serial.println(i);
+                Serial.println(message_buffer);
+                sim800c_repository.deleteSmsAt(i);
+                break;
+            }
+        }
         GpsSystem_BL::GpsSmsData gps_sms_data = {
             gps_connection_status.latitude_x1000000,
             gps_connection_status.longitude_x1000000,
@@ -64,7 +74,7 @@ void setup() {
 void loop() {
     run_gps_flow();
     run_sim_flow();
-   /* Serial.print(F("Free RAM after SIM: "));
-    Serial.println(freeMemory());*/
+    Serial.print(F("Free RAM after SIM: "));
+    Serial.println(freeMemory());
 	delay(1000);
 }
