@@ -119,32 +119,42 @@ void GpsSystem_BL::analyze_sms_message(const char* message) {
     }
 
     switch (message[0]) {
-    case '#':
+    case '#': {
         const char* phone_number = message + 1;
+
         if (eeprom_repository_ != nullptr) {
             if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
                 (void)call_phone_number();
             }
         }
+
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
         Serial.print(F("numero di telefono: "));
         Serial.println(phone_number);
+        Serial.print(F("comando ricevuto: "));
+        Serial.println(message[0]);
 #endif
+
         break;
-    case '*':
-        // TODO: inoltrare il payload a una funzione dedicata al comando asterisco.
+    }
+
+    case '*': {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
         Serial.print(F("comando asterisco: "));
         Serial.println(message + 1);
 #endif
+
         break;
-    default:
-        // TODO: gestire comandi sconosciuti.
+    }
+
+    default: {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
         Serial.print(F("comando sconosciuto: "));
         Serial.println(message);
 #endif
+
         break;
+    }
     }
 }
 void GpsSystem_BL::hang_up_phone_call() {

@@ -64,7 +64,7 @@ void setup() {
     Serial.begin(115200);
     //USE ONLY WITH EEPROM CLEAR
     //EepromRepository eeprom_repository;
-    //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, APP_PHONE_LOCAL_NUMBER); // bootstrap one-shot
+    //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX  ); // bootstrap one-shot
 }
 void loop() {
     run_gps_flow();
