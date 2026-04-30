@@ -1,9 +1,8 @@
 // File: GpsSystem_BL.cpp
 #include "GpsSystem_BL.h"
 #include <stdio.h>
-#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+#include <stdlib.h>
 #include <Arduino.h>
-#endif
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
 	sim_repository_(nullptr),
@@ -37,9 +36,13 @@ bool GpsSystem_BL::call_phone_number() {
         return false;
 	}
     char number[sizeof(APP_PHONE_NUMBER)] = {};
-    if (!load_phone_number_with_prefix(number)) {
+    if (!load_phone_number_from_eeprom_with_prefix(number)) {
         return false;
     }
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+    Serial.print(F("calling number: "));
+    Serial.println(number);
+#endif
 	sim_repository_->listen();
     return sim_repository_->call(number);
 }
@@ -49,7 +52,7 @@ bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
     }
 
     char number[sizeof(APP_PHONE_NUMBER)] = {};
-    if (!load_phone_number_with_prefix(number)) {
+    if (!load_phone_number_from_eeprom_with_prefix(number)) {
         return false;
     }
 
@@ -75,13 +78,14 @@ bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
     }
 
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-    Serial.print("sms: ");
+    Serial.print(F("sms: "));
     Serial.println(sms_message);
 #endif
-
-    sim_repository_->listen();
-    const bool is_sent = sim_repository_->sendSms(number, sms_message);
-    return is_sent;
+    //NON ATTIVARE MAI
+    /*sim_repository_->listen();
+    const bool is_sent = sim_repository_->sendSms(number, sms_message);*/
+    //return is_sent;
+	return false;
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
 	if (sim_repository_ == nullptr) {
@@ -109,7 +113,40 @@ bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
     (void)sim_repository_->deleteSmsAt(1U);
     return true;
 }
+void GpsSystem_BL::analyze_sms_message(const char* message) {
+    if (message == nullptr || message[0] == '\0') {
+        return;
+    }
 
+    switch (message[0]) {
+    case '#':
+        const char* phone_number = message + 1;
+        if (eeprom_repository_ != nullptr) {
+            if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
+                (void)call_phone_number();
+            }
+        }
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+        Serial.print(F("numero di telefono: "));
+        Serial.println(phone_number);
+#endif
+        break;
+    case '*':
+        // TODO: inoltrare il payload a una funzione dedicata al comando asterisco.
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+        Serial.print(F("comando asterisco: "));
+        Serial.println(message + 1);
+#endif
+        break;
+    default:
+        // TODO: gestire comandi sconosciuti.
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+        Serial.print(F("comando sconosciuto: "));
+        Serial.println(message);
+#endif
+        break;
+    }
+}
 void GpsSystem_BL::hang_up_phone_call() {
 	if (sim_repository_ == nullptr) {
 		return;
@@ -124,7 +161,7 @@ void GpsSystem_BL::startSmsReception() {
 	this->sim_repository_->listen();
 	this->sim_repository_->initSmsReception();
 }
-bool GpsSystem_BL::load_phone_number_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
+bool GpsSystem_BL::load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
     if (eeprom_repository_ == nullptr) {
         return false;
     }
@@ -148,13 +185,39 @@ bool GpsSystem_BL::load_phone_number_with_prefix(char (&out_phone_number)[sizeof
     out_phone_number[out_index] = '\0';
     return true;
 }
-bool GpsSystem_BL::initialize_phone_local_number(EepromRepository& eeprom_repository, const char (&phone_local_number)[APP_PHONE_LOCAL_NUMBER_LENGTH + 1U]) {
+bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_repository, const char* phone_local_number) {
+    if (phone_local_number == nullptr) {
+        return false;
+    }
+
+    const char* local_number_ptr = phone_local_number;
+    uint8_t payload_len = 0U;
+    while (phone_local_number[payload_len] != '\0') {
+        ++payload_len;
+    }
+
+    uint8_t prefix_len = 0U;
+    while (APP_PHONE_PREFIX[prefix_len] != '\0') {
+        ++prefix_len;
+    }
+
+    if (payload_len == static_cast<uint8_t>(prefix_len + APP_PHONE_LOCAL_NUMBER_LENGTH)) {
+        for (uint8_t i = 0U; i < prefix_len; ++i) {
+            if (phone_local_number[i] != APP_PHONE_PREFIX[i]) {
+                return false;
+            }
+        }
+        local_number_ptr = phone_local_number + prefix_len;
+    }
+    else if (payload_len != APP_PHONE_LOCAL_NUMBER_LENGTH) {
+        return false;
+    }
+
     for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
-        const char c = phone_local_number[index];
+        const char c = local_number_ptr[index];
         if (c < '0' || c > '9') {
             return false;
         }
-
         if (!eeprom_repository.write_uint8(index, static_cast<uint8_t>(c))) {
             return false;
         }

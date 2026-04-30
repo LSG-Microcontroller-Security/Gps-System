@@ -28,14 +28,15 @@ public:
     bool send_sms(const GpsSmsData& gps_sms_data);
     bool check_if_sms_arrived();
     bool read_sms(char* out_message, uint8_t out_message_size);
+    void analyze_sms_message(const char* message);
     void hang_up_phone_call();
     void startSmsReception();
-    static bool initialize_phone_local_number(
+    static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
-        const char (&phone_local_number)[APP_PHONE_LOCAL_NUMBER_LENGTH + 1U]);
+        const char* phone_local_number);
 
 private:
-    bool load_phone_number_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const;
+    bool load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const;
 
     NmeaGpsActivity* gps_activity_;
     SimRepository* sim_repository_;

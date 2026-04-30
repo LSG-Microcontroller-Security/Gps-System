@@ -26,10 +26,6 @@ int freeMemory() {
 }
 GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
-
-namespace {
-}
-
 void run_gps_flow() {
     SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
@@ -42,33 +38,33 @@ void run_sim_flow() {
     SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
     SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    EepromRepository eeprom_repository;
+    GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     if (is_first_sim_flow_run) {
         sim800c_repository.listen();
         sim800c_repository.deleteAllSms();
         is_first_sim_flow_run = false;
     }
-    EepromRepository eeprom_repository;
-    GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     sim_bl.startSmsReception();
     char message_buffer[16];
-    if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
-        Serial.println(message_buffer);
-        // TODO: passare message_buffer alla futura funzione di analisi azioni.
-        GpsSystem_BL::GpsSmsData gps_sms_data = {
-            gps_connection_status.latitude_x1000000,
-            gps_connection_status.longitude_x1000000,
-            gps_connection_status.altitude_m_x10,
-            gps_connection_status.speed_knots_x100
-        };
-        sim_bl.send_sms(gps_sms_data);
+    if (sim_bl.check_if_sms_arrived()) {
+        if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
+            sim_bl.analyze_sms_message(message_buffer);
+            GpsSystem_BL::GpsSmsData gps_sms_data = {
+                gps_connection_status.latitude_x1000000,
+                gps_connection_status.longitude_x1000000,
+                gps_connection_status.altitude_m_x10,
+                gps_connection_status.speed_knots_x100
+            };
+            sim_bl.send_sms(gps_sms_data);
+        }
     }
-    //sim_bl.call_phone_number();
 }
 void setup() {
     Serial.begin(115200);
     //USE ONLY WITH EEPROM CLEAR
-    // EepromRepository eeprom_repository;
-    // //(void)GpsSystem_BL::initialize_phone_local_number(eeprom_repository, APP_PHONE_LOCAL_NUMBER); // bootstrap one-shot
+    //EepromRepository eeprom_repository;
+    //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, APP_PHONE_LOCAL_NUMBER); // bootstrap one-shot
 }
 void loop() {
     run_gps_flow();
