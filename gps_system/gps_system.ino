@@ -25,6 +25,7 @@ int freeMemory() {
     return free_memory;
 }
 GpsConnectionStatus gps_connection_status = {};
+bool is_first_sim_flow_run = true;
 
 namespace {
 }
@@ -41,20 +42,18 @@ void run_sim_flow() {
     SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
     SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    if (is_first_sim_flow_run) {
+        sim800c_repository.listen();
+        sim800c_repository.deleteAllSms();
+        is_first_sim_flow_run = false;
+    }
     EepromRepository eeprom_repository;
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     sim_bl.startSmsReception();
-    if (sim_bl.check_if_sms_arrived()) {
-        char message_buffer[20];
-        for (uint8_t i = 1; i <= 20; ++i) {
-            if (sim800c_repository.readSms(i, message_buffer)) {
-                Serial.print("SMS trovato in indice ");
-                Serial.println(i);
-                Serial.println(message_buffer);
-                sim800c_repository.deleteSmsAt(i);
-                break;
-            }
-        }
+    char message_buffer[16];
+    if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
+        Serial.println(message_buffer);
+        // TODO: passare message_buffer alla futura funzione di analisi azioni.
         GpsSystem_BL::GpsSmsData gps_sms_data = {
             gps_connection_status.latitude_x1000000,
             gps_connection_status.longitude_x1000000,

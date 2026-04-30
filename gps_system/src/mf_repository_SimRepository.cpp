@@ -28,6 +28,7 @@ namespace {
     constexpr uint8_t sim_response_buffer_size = 20;
     constexpr uint8_t sim_small_response_buffer_size = 20;
     constexpr uint8_t sim_sms_message_buffer_size = 16;
+    constexpr unsigned long sim_read_sms_timeout_ms = 900UL;
 
     inline void send_at_cmd(ISerial& serial, const char* cmd) {
         serial.print(cmd);
@@ -153,7 +154,6 @@ void SimRepository::initSmsReception() {
 }
 
 bool SimRepository::readSms(uint8_t index, char* message) {
-	serial_.listen();
     if (message == nullptr) {
         return false;
     }
@@ -178,7 +178,10 @@ bool SimRepository::readSms(uint8_t index, char* message) {
     uint8_t message_pos = 0U;
     unsigned long start = millis();
 
-    while (static_cast<unsigned long>(millis() - start) < 2500UL && message_pos < static_cast<uint8_t>(sim_sms_message_buffer_size - 1U)) {
+    char trailer[8] = {};
+    uint8_t trailer_pos = 0U;
+
+    while (static_cast<unsigned long>(millis() - start) < sim_read_sms_timeout_ms && message_pos < static_cast<uint8_t>(sim_sms_message_buffer_size - 1U)) {
         if (serial_.available() <= 0) {
             continue;
         }
@@ -190,6 +193,24 @@ bool SimRepository::readSms(uint8_t index, char* message) {
         }
 
         char c = static_cast<char>(read_value);
+
+        if (trailer_pos < static_cast<uint8_t>(sizeof(trailer) - 1U)) {
+            trailer[trailer_pos++] = c;
+        }
+        else {
+            for (uint8_t i = 0U; i < static_cast<uint8_t>(sizeof(trailer) - 2U); ++i) {
+                trailer[i] = trailer[i + 1U];
+            }
+            trailer[static_cast<uint8_t>(sizeof(trailer) - 2U)] = c;
+        }
+        trailer[trailer_pos < static_cast<uint8_t>(sizeof(trailer)) ? trailer_pos : static_cast<uint8_t>(sizeof(trailer) - 1U)] = '\0';
+
+        if (strstr(trailer, "ERROR") != nullptr) {
+            break;
+        }
+        if (state >= 2U && strstr(trailer, "OK") != nullptr) {
+            break;
+        }
 
 
 
@@ -279,11 +300,9 @@ int SimRepository::getSmsCount() {
 
 bool SimRepository::deleteSmsAt(uint8_t index) {
     clear_receive_buffer();
-
     serial_.print(AT_DELETE_SMS_PREFIX);
     write_uint8(serial_, index);
     serial_.write((uint8_t)'\r');
-
     return wait_for_pattern(LITERAL_OK, 2000UL);
 }
 

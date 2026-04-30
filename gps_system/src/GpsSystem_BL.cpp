@@ -93,6 +93,22 @@ bool GpsSystem_BL::check_if_sms_arrived() {
 	this->sim_repository_->delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
 	return sms_count > 0;
 }
+bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
+    if (sim_repository_ == nullptr || out_message == nullptr || out_message_size == 0U) {
+        return false;
+    }
+
+    out_message[0] = '\0';
+    sim_repository_->listen();
+
+    if (!sim_repository_->readSms(1U, out_message)) {
+        return false;
+    }
+
+    out_message[out_message_size - 1U] = '\0';
+    (void)sim_repository_->deleteSmsAt(1U);
+    return true;
+}
 
 void GpsSystem_BL::hang_up_phone_call() {
 	if (sim_repository_ == nullptr) {

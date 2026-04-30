@@ -27,6 +27,7 @@ public:
     bool call_phone_number();
     bool send_sms(const GpsSmsData& gps_sms_data);
     bool check_if_sms_arrived();
+    bool read_sms(char* out_message, uint8_t out_message_size);
     void hang_up_phone_call();
     void startSmsReception();
     static bool initialize_phone_local_number(
