@@ -186,11 +186,7 @@ bool GpsSystem_BL::load_phone_number_from_eeprom_with_prefix(char (&out_phone_nu
         if (!eeprom_repository_->read_uint8(i, value)) {
             return false;
         }
-        const char c = static_cast<char>(value);
-        if (c < '0' || c > '9') {
-            return false;
-        }
-        out_phone_number[out_index++] = c;
+        out_phone_number[out_index++] = static_cast<char>(value);
     }
     out_phone_number[out_index] = '\0';
     return true;
@@ -200,31 +196,12 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
         return false;
     }
 
-    const char* local_number_ptr = phone_local_number;
-    uint8_t payload_len = 0U;
-    while (phone_local_number[payload_len] != '\0') {
-        ++payload_len;
-    }
-
-    uint8_t prefix_len = 0U;
-    while (APP_PHONE_PREFIX[prefix_len] != '\0') {
-        ++prefix_len;
-    }
-
-    if (payload_len == static_cast<uint8_t>(prefix_len + APP_PHONE_LOCAL_NUMBER_LENGTH)) {
-        for (uint8_t i = 0U; i < prefix_len; ++i) {
-            if (phone_local_number[i] != APP_PHONE_PREFIX[i]) {
-                return false;
-            }
-        }
-        local_number_ptr = phone_local_number + prefix_len;
-    }
-    else if (payload_len != APP_PHONE_LOCAL_NUMBER_LENGTH) {
+    if (phone_local_number[APP_PHONE_LOCAL_NUMBER_LENGTH] != '\0') {
         return false;
     }
 
     for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
-        const char c = local_number_ptr[index];
+        const char c = phone_local_number[index];
         if (c < '0' || c > '9') {
             return false;
         }
