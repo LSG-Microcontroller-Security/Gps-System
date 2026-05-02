@@ -31,34 +31,20 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	   Serial.println(longitude, 6);*/
 	return true;
 }
-bool GpsSystem_BL::call_phone_number() {
-    if (sim_repository_ == nullptr) {
-        return false;
-	}
+void GpsSystem_BL::call_phone_number() {
     char number[sizeof(APP_PHONE_NUMBER)] = {};
-    if (!load_phone_number_from_eeprom_with_prefix(number)) {
-        return false;
-    }
+    load_phone_number_from_eeprom_with_prefix(number);
+
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
     Serial.print(F("calling number: "));
     Serial.println(number);
 #endif
 	sim_repository_->listen();
-    return sim_repository_->call(number);
+    sim_repository_->call(number);
 }
-bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
-    if (sim_repository_ == nullptr) {
-        return false;
-    }
-
+void GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
     char number[sizeof(APP_PHONE_NUMBER)] = {};
-    if (!load_phone_number_from_eeprom_with_prefix(number)) {
-        return false;
-    }
-
-    if (number[0] == '\0') {
-        return false;
-    }
+    load_phone_number_from_eeprom_with_prefix(number);
     char sms_message[112];
     const int written = snprintf(
         sms_message,
@@ -73,19 +59,13 @@ bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
         gps_sms_data.speed_knots_x100 / 100L,
         labs(gps_sms_data.speed_knots_x100 % 100L));
 
-    if (written <= 0 || written >= static_cast<int>(sizeof(sms_message))) {
-        return false;
-    }
-
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
     Serial.print(F("sms: "));
     Serial.println(sms_message);
 #endif
     //NON ATTIVARE MAI
     sim_repository_->listen();
-    const bool is_sent = sim_repository_->sendSms(number, sms_message);
-    //return is_sent;
-	return false;
+    sim_repository_->sendSms(number, sms_message);
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
 	if (sim_repository_ == nullptr) {
@@ -124,7 +104,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message) {
 
         if (eeprom_repository_ != nullptr) {
             if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
-                (void)call_phone_number();
+               (void)call_phone_number();
             }
         }
 

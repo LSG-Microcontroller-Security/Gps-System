@@ -32,11 +32,11 @@ public:
     virtual void delay(unsigned long ms);
 #else
     ~SimRepository() = default;
-    bool call(const char* number);
+    void call(const char* number);
     void hangUp();
     void setSmsTextMode();
     void setSmsPduMode();
-    bool sendSms(const char* number, const char* message);
+    void sendSms(const char* number, const char* message);
     void initSmsReception();
     bool readSms(uint8_t index, char* message);
     void deleteAllSms();

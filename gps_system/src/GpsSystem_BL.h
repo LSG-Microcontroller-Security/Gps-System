@@ -24,8 +24,8 @@ public:
     GpsSystem_BL(SimRepository* sim_repository, EepromRepository* eeprom_repository);
     ~GpsSystem_BL() = default;
     bool read_and_log_coordinates(GpsConnectionStatus& out_status);
-    bool call_phone_number();
-    bool send_sms(const GpsSmsData& gps_sms_data);
+    void call_phone_number();
+    void send_sms(const GpsSmsData& gps_sms_data);
     bool check_if_sms_arrived();
     bool read_sms(char* out_message, uint8_t out_message_size);
     void analyze_sms_message(const char* message);

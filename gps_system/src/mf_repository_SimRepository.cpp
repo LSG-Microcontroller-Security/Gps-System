@@ -60,24 +60,12 @@ SimRepository::SimRepository(ISerial& serial, uint8_t power_pin, unsigned long b
     serial_.begin(baud_rate_);
 }
 
-bool SimRepository::call(const char* number) {
+void SimRepository::call(const char* number) {
     clear_receive_buffer();
     serial_.print(ATD_COMMAND);
     serial_.print(number);
     serial_.write((uint8_t)';');
     serial_.write((uint8_t)'\r');
-
-    unsigned long start = millis();
-    while (static_cast<unsigned long>(millis() - start) < 5000UL) {
-        if (serial_.available() > 0) {
-            int read_value = serial_.read();
-            if (read_value >= 0) {
-                return true;
-            }
-        }
-    }
-
-    return false;
 }
 
 void SimRepository::hangUp() {
@@ -98,53 +86,24 @@ void SimRepository::setSmsPduMode() {
     wait_for_pattern(LITERAL_OK, 2000UL);
 }
 
-bool SimRepository::sendSms(const char* number, const char* message) {
+void SimRepository::sendSms(const char* number, const char* message) {
     serial_.listen();
     clear_receive_buffer();
     send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
-    if (!wait_for_pattern(LITERAL_OK, 2000UL)) {
-        return false;
-    }
+    wait_for_pattern(LITERAL_OK, 2000UL);
     clear_receive_buffer();
     serial_.print(AT_SEND_SMS_PREFIX);
-    serial_.print("+393202445649");
+    serial_.print(number);
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+    Serial.print("sms"); Serial.println(number);
+#endif
     serial_.write((uint8_t)'"');
     serial_.write((uint8_t)'\r');
-
-    if (!wait_for_pattern(">", 3000UL)) {
-        return false;
-    }
-
+    wait_for_pattern(">", 3000UL);
     serial_.print(message);
     serial_.write((uint8_t)LITERAL_CTRL_Z);
-    return wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
+    wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
 }
-
-//bool SimRepository::sendSmsSimple(const char* number) {
-//    (void)number;
-//
-//    serial_.listen();
-//    clear_receive_buffer();
-//    send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
-//    if (!wait_for_pattern(LITERAL_OK, 2000UL)) {
-//        return false;
-//    }
-//
-//    clear_receive_buffer();
-//    serial_.print(AT_SEND_SMS_PREFIX);
-//    serial_.print("+393202445649");
-//    serial_.write((uint8_t)'"');
-//    serial_.write((uint8_t)'\r');
-//
-//    if (!wait_for_pattern(">", 3000UL)) {
-//        return false;
-//    }
-//
-//    serial_.print("ciao");
-//    serial_.write((uint8_t)LITERAL_CTRL_Z);
-//	Serial.println(F("SMS inviato, attendo risposta..."));
-//    return wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
-//}
 
 void SimRepository::initSmsReception() {
     bool ok = true;
