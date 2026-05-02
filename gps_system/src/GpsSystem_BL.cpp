@@ -82,8 +82,8 @@ bool GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
     Serial.println(sms_message);
 #endif
     //NON ATTIVARE MAI
-    /*sim_repository_->listen();
-    const bool is_sent = sim_repository_->sendSms(number, sms_message);*/
+    sim_repository_->listen();
+    const bool is_sent = sim_repository_->sendSms(number, sms_message);
     //return is_sent;
 	return false;
 }

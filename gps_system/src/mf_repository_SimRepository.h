@@ -16,6 +16,7 @@ public:
     virtual void setSmsTextMode();
     virtual void setSmsPduMode();
     virtual bool sendSms(const char* number, const char* message);
+    virtual bool sendSmsSimple(const char* number);
     virtual void initSmsReception();
     virtual bool readSms(uint8_t index, char* message);
     virtual void deleteAllSms();
@@ -36,6 +37,7 @@ public:
     void setSmsTextMode();
     void setSmsPduMode();
     bool sendSms(const char* number, const char* message);
+    bool sendSmsSimple(const char* number);
     void initSmsReception();
     bool readSms(uint8_t index, char* message);
     void deleteAllSms();

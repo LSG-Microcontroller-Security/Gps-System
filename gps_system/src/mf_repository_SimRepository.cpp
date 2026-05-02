@@ -11,6 +11,7 @@
 #define ATD_COMMAND                  "ATD+"
 #define HANGUP_COMMAND               "ATH"
 #define AT_SEND_SMS_PREFIX           "AT+CMGS=\""
+#define AT_SEND_SMS_HEADER           "+CMGS:"
 #define LITERAL_OK                   "OK"
 #define LITERAL_CTRL_Z               ((char)26)
 #define LITERAL_RETURN               "\r\n"
@@ -98,37 +99,51 @@ void SimRepository::setSmsPduMode() {
 }
 
 bool SimRepository::sendSms(const char* number, const char* message) {
-    if (number == nullptr || number[0] == '\0' || message == nullptr) {
+    serial_.listen();
+    clear_receive_buffer();
+    send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
+    if (!wait_for_pattern(LITERAL_OK, 2000UL)) {
         return false;
     }
-
     clear_receive_buffer();
     serial_.print(AT_SEND_SMS_PREFIX);
-    serial_.print(number);
+    serial_.print("+393202445649");
     serial_.write((uint8_t)'"');
     serial_.write((uint8_t)'\r');
 
-    unsigned long start = millis();
-    bool got_prompt = false;
-
-    while (static_cast<unsigned long>(millis() - start) < 3000UL) {
-        if (serial_.available() > 0) {
-            int read_value = serial_.read();
-            if (read_value == '>') {
-                got_prompt = true;
-                break;
-            }
-        }
-    }
-
-    if (!got_prompt) {
+    if (!wait_for_pattern(">", 3000UL)) {
         return false;
     }
 
     serial_.print(message);
     serial_.write((uint8_t)LITERAL_CTRL_Z);
+    return wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
+}
 
-    return wait_for_pattern(LITERAL_OK, 10000UL);
+bool SimRepository::sendSmsSimple(const char* number) {
+    (void)number;
+
+    serial_.listen();
+    clear_receive_buffer();
+    send_at_cmd(serial_, AT_SET_SMS_TEXT_MODE);
+    if (!wait_for_pattern(LITERAL_OK, 2000UL)) {
+        return false;
+    }
+
+    clear_receive_buffer();
+    serial_.print(AT_SEND_SMS_PREFIX);
+    serial_.print("+393202445649");
+    serial_.write((uint8_t)'"');
+    serial_.write((uint8_t)'\r');
+
+    if (!wait_for_pattern(">", 3000UL)) {
+        return false;
+    }
+
+    serial_.print("ciao");
+    serial_.write((uint8_t)LITERAL_CTRL_Z);
+	Serial.println(F("SMS inviato, attendo risposta..."));
+    return wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
 }
 
 void SimRepository::initSmsReception() {
