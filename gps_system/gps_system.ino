@@ -126,6 +126,11 @@ void run_sim_flow() {
             sim_bl.analyze_sms_message(message_buffer, gps_connection_status);
         }
     }
+    if (GpsSystem_BL::get_if_sleep_mode_requested()) {
+        g_stay_awake_latched = false;
+        digitalWrite(kGpsPowerPin, LOW);
+        GpsSystem_BL::clear_sleep_mode_requested();
+    }
 }
 void setup() {
     Serial.begin(115200);

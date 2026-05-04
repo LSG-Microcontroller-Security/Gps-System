@@ -6,6 +6,7 @@
 
 bool GpsSystem_BL::is_call_disabled = false;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
+bool GpsSystem_BL::is_sleep_mode_requested = false;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -121,25 +122,21 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 
         break;
     }
-
     case '*': {
-        is_call_disabled = true;
-#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-        Serial.print(F("comando asterisco: "));
-        Serial.println(message + 1);
-#endif
-
-        break;
-    }
-    case '%': {
-        is_gps_flow_enabled = true;
-#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-        Serial.println(F("gps flow enabled"));
-#endif
+        is_sleep_mode_requested = true;
         break;
     }
 
     default: {
+        if (!is_call_disabled || !is_gps_flow_enabled) {
+            is_call_disabled = true;
+            is_gps_flow_enabled = true;
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+            Serial.println(F("call disabled + gps flow enabled"));
+#endif
+            break;
+        }
+
         const GpsSmsData gps_sms_data = {
             gps_status.latitude_x1000000,
             gps_status.longitude_x1000000,
@@ -230,4 +227,10 @@ bool GpsSystem_BL::get_if_call_disabled()  {
 }
 bool GpsSystem_BL::get_if_gps_flow_enabled() {
     return is_gps_flow_enabled;
+}
+bool GpsSystem_BL::get_if_sleep_mode_requested() {
+    return is_sleep_mode_requested;
+}
+void GpsSystem_BL::clear_sleep_mode_requested() {
+    is_sleep_mode_requested = false;
 }
