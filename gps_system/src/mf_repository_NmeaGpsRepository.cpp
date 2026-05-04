@@ -35,9 +35,9 @@ void NmeaGpsRepository::set_timeout(unsigned long timeout_ms) {
 }
 
 bool NmeaGpsRepository::read_sentence(char* out_sentence, uint8_t max_length) {
-    if (out_sentence == nullptr || max_length < nmea_min_sentence_length) {
+   /* if (out_sentence == nullptr || max_length < nmea_min_sentence_length) {
         return false;
-    }
+    }*/
     unsigned long start_ms = millis();
     uint8_t index = 0;
     bool sentence_started = false;
@@ -71,14 +71,13 @@ bool NmeaGpsRepository::read_sentence(char* out_sentence, uint8_t max_length) {
             return true;
         }
 
-        if (index >= static_cast<uint8_t>(max_length - 1)) {
+       /* if (index >= static_cast<uint8_t>(max_length - 1)) {
             out_sentence[0] = '\0';
             return false;
-        }
+        }*/
 
         out_sentence[index++] = current_char;
     }
-
     out_sentence[0] = '\0';
     return false;
 }

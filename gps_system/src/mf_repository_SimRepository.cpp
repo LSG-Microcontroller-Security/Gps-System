@@ -107,7 +107,6 @@ void SimRepository::sendSms(const char* number, const char* message) {
 
 void SimRepository::initSmsReception() {
     bool ok = true;
-
     clear_receive_buffer();
     send_at_cmd(serial_, AT_SET_SMS_MEMORY);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
@@ -128,17 +127,12 @@ void SimRepository::initSmsReception() {
 }
 
 bool SimRepository::readSms(uint8_t index, char* message) {
-    if (message == nullptr) {
-        return false;
-    }
-
     message[0] = '\0';
-
     if (!is_sms_receive_initialized_) {
         initSmsReception();
-        if (!is_sms_receive_initialized_) {
-            return false;
-        }
+  /*      if (!is_sms_receive_initialized_) {
+			//Serial.println(F("Failed to initialize SMS reception"));
+            }*/
     }
 
     clear_receive_buffer();
@@ -185,8 +179,6 @@ bool SimRepository::readSms(uint8_t index, char* message) {
         if (state >= 2U && strstr(trailer, "OK") != nullptr) {
             break;
         }
-
-
 
         if (state == 0U) {
             if (c == AT_SMS_HEADER[header_pos]) {
@@ -298,19 +290,17 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
         return 0;
     }
 
-    char buffer[sim_sms_message_buffer_size];
-
     uint8_t max_index_to_scan = static_cast<uint8_t>(sms_count + 10);
     if (max_index_to_scan < static_cast<uint8_t>(sms_count)) {
         max_index_to_scan = 255;
     }
 
     for (uint8_t i = 1; i <= max_index_to_scan; ++i) {
-        if (!readSms(i, buffer)) {
+        if (!readSms(i, sms_message_buffer_)) {
             continue;
         }
 
-        if (strcmp(buffer, pattern) == 0) {
+        if (strcmp(sms_message_buffer_, pattern) == 0) {
             return i;
         }
     }

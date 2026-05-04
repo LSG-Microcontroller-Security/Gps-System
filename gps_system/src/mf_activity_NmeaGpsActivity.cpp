@@ -267,9 +267,9 @@ bool NmeaGpsActivity::is_sentence_type(const char* sentence, char first, char se
 }
 
 bool NmeaGpsActivity::get_field(const char* sentence, uint8_t field_index, const char*& field, uint8_t& length) const {
-    if (sentence == nullptr) {
+   /* if (sentence == nullptr) {
         return false;
-    }
+    }*/
 
     const char* current = sentence;
     if (*current == '$') {
