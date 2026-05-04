@@ -93,7 +93,7 @@ bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
     (void)sim_repository_->deleteSmsAt(1U);
     return true;
 }
-void GpsSystem_BL::analyze_sms_message(const char* message) {
+void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status) {
     if (message == nullptr || message[0] == '\0') {
         return;
     }
@@ -128,6 +128,13 @@ void GpsSystem_BL::analyze_sms_message(const char* message) {
     }
 
     default: {
+        const GpsSmsData gps_sms_data = {
+            gps_status.latitude_x1000000,
+            gps_status.longitude_x1000000,
+            gps_status.altitude_m_x10,
+            gps_status.speed_knots_x100
+        };
+        send_sms(gps_sms_data);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
         Serial.print(F("comando sconosciuto: "));
         Serial.println(message);

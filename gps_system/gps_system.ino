@@ -15,7 +15,7 @@
 #include "src/mf_repository_NmeaGpsRepository.h"
 #include "src/mf_repository_SimRepository.h"
 #include "src/mf_activity_NmeaGpsActivity.h"
-#include <mf_repository_AvrMicroRepository.h>
+//#include <mf_repository_AvrMicroRepository.h>
 #include "src/GpsSystem_BL.h"
 extern unsigned int __heap_start;
 extern void* __brkval;
@@ -98,14 +98,7 @@ void run_sim_flow() {
     char message_buffer[16];
     if (sim_bl.check_if_sms_arrived()) {
         if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
-            sim_bl.analyze_sms_message(message_buffer);
-            GpsSystem_BL::GpsSmsData gps_sms_data = {
-                gps_connection_status.latitude_x1000000,
-                gps_connection_status.longitude_x1000000,
-                gps_connection_status.altitude_m_x10,
-                gps_connection_status.speed_knots_x100
-            };
-            sim_bl.send_sms(gps_sms_data);
+            sim_bl.analyze_sms_message(message_buffer, gps_connection_status);
         }
     }
 }

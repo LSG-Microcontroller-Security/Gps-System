@@ -28,7 +28,7 @@ public:
     void send_sms(const GpsSmsData& gps_sms_data);
     bool check_if_sms_arrived();
     bool read_sms(char* out_message, uint8_t out_message_size);
-    void analyze_sms_message(const char* message);
+    void analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status);
     void hang_up_phone_call();
     void startSmsReception();
     static bool store_phone_local_number_to_eeprom(
