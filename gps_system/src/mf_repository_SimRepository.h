@@ -16,8 +16,8 @@ public:
     virtual void setSmsTextMode();
     virtual void setSmsPduMode();
     virtual bool sendSms(const char* number, const char* message);
-    virtual bool sendSmsSimple(const char* number);
-    virtual void initSmsReception(bool keep_netlight_on = true);
+    virtual void initSmsReception();
+    virtual bool setNetlightEnabled(bool enabled);
     virtual bool readSms(uint8_t index, char* message);
     virtual void deleteAllSms();
     virtual int getSmsCount();
@@ -37,7 +37,8 @@ public:
     void setSmsTextMode();
     void setSmsPduMode();
     void sendSms(const char* number, const char* message);
-    void initSmsReception(bool keep_netlight_on = true);
+    void initSmsReception();
+    bool setNetlightEnabled(bool enabled);
     bool readSms(uint8_t index, char* message);
     void deleteAllSms();
     int getSmsCount();

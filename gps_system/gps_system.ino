@@ -76,9 +76,32 @@ void enter_deep_sleep() {
     power_twi_enable();
     power_adc_enable();
     ADCSRA |= _BV(ADEN);
-    digitalWrite(kGpsPowerPin, HIGH);
+}
+void turnOffSimLed() {
+    SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
+    SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    EepromRepository eeprom_repository;
+    GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
+    sim_bl.set_sim_netlight_enabled(false);
+}
+void make_alarm_call() {
+    if (GpsSystem_BL::get_if_call_disabled()) return;
+    SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
+    SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    EepromRepository eeprom_repository;
+    GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
+	char number[sizeof(APP_PHONE_NUMBER)] = {};
+	sim_bl.load_phone_number_from_eeprom_with_prefix(number);
+	sim800c_repository.call(number);
 }
 void run_gps_flow() {
+    if (!GpsSystem_BL::get_if_gps_flow_enabled()) {
+        digitalWrite(kGpsPowerPin, LOW);
+        return;
+    }
+    digitalWrite(kGpsPowerPin, HIGH);
     SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
     NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter);
@@ -93,11 +116,10 @@ void run_sim_flow() {
     EepromRepository eeprom_repository;
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     if (is_first_sim_flow_run) {
-        sim800c_repository.listen();
-        sim800c_repository.deleteAllSms();
+        sim_bl.delete_all_sms();
+        sim_bl.startSmsReception();
         is_first_sim_flow_run = false;
     }
-    sim_bl.startSmsReception();
     char message_buffer[16];
     if (sim_bl.check_if_sms_arrived()) {
         if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
@@ -113,10 +135,10 @@ void setup() {
 #endif
     pinMode(kWakeInt0Pin, INPUT_PULLUP);
     pinMode(kGpsPowerPin, OUTPUT);
-    digitalWrite(kGpsPowerPin, HIGH);
+    digitalWrite(kGpsPowerPin, LOW);
     delay(100);
     attachInterrupt(digitalPinToInterrupt(kWakeInt0Pin), on_int0_wake, FALLING);
-
+	turnOffSimLed();
     //USE ONLY WITH EEPROM CLEAR
     //EepromRepository eeprom_repository;
     //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX  ); // bootstrap one-shot
@@ -128,11 +150,16 @@ void loop() {
         enter_deep_sleep();
         if (g_woke_from_int0) {
             g_stay_awake_latched = true;
+            
         }
         if (g_woke_from_wdt && !g_woke_from_int0) {
             return;
         }
     }
+    if(g_woke_from_int0){
+        make_alarm_call();
+		g_woke_from_int0 = false;
+	}
     run_gps_flow();
     run_sim_flow();
     Serial.print(F("Free RAM after SIM: "));

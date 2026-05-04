@@ -28,16 +28,21 @@ public:
     void send_sms(const GpsSmsData& gps_sms_data);
     bool check_if_sms_arrived();
     bool read_sms(char* out_message, uint8_t out_message_size);
+    void set_sim_netlight_enabled(bool enabled);
+    void delete_all_sms();
     void analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status);
     void hang_up_phone_call();
     void startSmsReception();
+	static bool get_if_call_disabled();
+    static bool get_if_gps_flow_enabled();
     static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
         const char* phone_local_number);
-
-private:
     bool load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const;
 
+private:
+    static bool is_call_disabled;
+    static bool is_gps_flow_enabled;
     NmeaGpsActivity* gps_activity_;
     SimRepository* sim_repository_;
     EepromRepository* eeprom_repository_;

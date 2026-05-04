@@ -107,7 +107,11 @@ void SimRepository::sendSms(const char* number, const char* message) {
     wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
 }
 
-void SimRepository::initSmsReception(bool keep_netlight_on) {
+void SimRepository::initSmsReception() {
+    if (is_sms_receive_initialized_) {
+        return;
+    }
+
     bool ok = true;
     clear_receive_buffer();
     send_at_cmd(serial_, AT_SET_SMS_MEMORY);
@@ -125,13 +129,13 @@ void SimRepository::initSmsReception(bool keep_netlight_on) {
     send_at_cmd(serial_, AT_SET_CNMI);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
-    if (!keep_netlight_on) {
-        clear_receive_buffer();
-        send_at_cmd(serial_, AT_SET_NETLIGHT_OFF);
-        ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
-    }
-
     is_sms_receive_initialized_ = ok;
+}
+
+bool SimRepository::setNetlightEnabled(bool enabled) {
+    clear_receive_buffer();
+    send_at_cmd(serial_, enabled ? "AT+CNETLIGHT=1" : AT_SET_NETLIGHT_OFF);
+    return wait_for_pattern(LITERAL_OK, 5000UL);
 }
 
 bool SimRepository::readSms(uint8_t index, char* message) {

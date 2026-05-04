@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Arduino.h>
+
+bool GpsSystem_BL::is_call_disabled = false;
+bool GpsSystem_BL::is_gps_flow_enabled = false;
+
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
 	sim_repository_(nullptr),
@@ -119,11 +123,19 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
     }
 
     case '*': {
+        is_call_disabled = true;
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
         Serial.print(F("comando asterisco: "));
         Serial.println(message + 1);
 #endif
 
+        break;
+    }
+    case '%': {
+        is_gps_flow_enabled = true;
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+        Serial.println(F("gps flow enabled"));
+#endif
         break;
     }
 
@@ -151,12 +163,26 @@ void GpsSystem_BL::hang_up_phone_call() {
 	this->sim_repository_->listen();
 	this->sim_repository_->hangUp();
 }
+void GpsSystem_BL::set_sim_netlight_enabled(bool enabled) {
+    if (sim_repository_ == nullptr) {
+        return;
+    }
+    this->sim_repository_->listen();
+    (void)this->sim_repository_->setNetlightEnabled(enabled);
+}
+void GpsSystem_BL::delete_all_sms() {
+    if (sim_repository_ == nullptr) {
+        return;
+    }
+    this->sim_repository_->listen();
+    this->sim_repository_->deleteAllSms();
+}
 void GpsSystem_BL::startSmsReception() {
 	if (sim_repository_ == nullptr) {
 		return;
 	}
 	this->sim_repository_->listen();
-	this->sim_repository_->initSmsReception(false);
+	this->sim_repository_->initSmsReception();
 }
 bool GpsSystem_BL::load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
     if (eeprom_repository_ == nullptr) {
@@ -198,4 +224,10 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
     }
 
     return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
+}
+bool GpsSystem_BL::get_if_call_disabled()  {
+    return is_call_disabled;
+}
+bool GpsSystem_BL::get_if_gps_flow_enabled() {
+    return is_gps_flow_enabled;
 }

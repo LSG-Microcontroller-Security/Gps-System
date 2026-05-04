@@ -91,6 +91,7 @@
     <ClCompile Include="src\mf_repository_SimRepository.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram.cd" />
     <None Include="src\arduino folders read me.txt">
     </None>
   </ItemGroup>
