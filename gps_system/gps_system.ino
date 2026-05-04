@@ -5,6 +5,10 @@
 */
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include <avr/interrupt.h>
+#include <avr/power.h>
+#include <avr/sleep.h>
+#include <avr/wdt.h>
 #include "AppConfig.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
 #include "src/mf_repository_EepromRepository.h"
@@ -27,6 +31,50 @@ int freeMemory() {
 }
 GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
+constexpr uint8_t kWakeInt0Pin = 2U; // INT0 on ATmega328P (Nano D2)
+volatile bool g_woke_from_int0 = false;
+volatile bool g_woke_from_wdt = false;
+bool g_stay_awake_latched = false;
+
+ISR(WDT_vect) {
+    g_woke_from_wdt = true;
+}
+void on_int0_wake() {
+    g_woke_from_int0 = true;
+}
+void configure_watchdog_8s_interrupt() {
+    MCUSR &= static_cast<uint8_t>(~_BV(WDRF));
+    WDTCSR = static_cast<uint8_t>(_BV(WDCE) | _BV(WDE));
+    WDTCSR = static_cast<uint8_t>(_BV(WDIE) | _BV(WDP3) | _BV(WDP0)); // ~8s interrupt only
+}
+void disable_watchdog() {
+    wdt_disable();
+}
+void enter_deep_sleep() {
+    ADCSRA &= static_cast<uint8_t>(~_BV(ADEN));
+    power_adc_disable();
+    power_spi_disable();
+    power_twi_disable();
+    power_timer0_disable();
+    power_timer1_disable();
+    power_timer2_disable();
+    ACSR |= _BV(ACD);
+
+    configure_watchdog_8s_interrupt();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+    sleep_cpu();
+    sleep_disable();
+    disable_watchdog();
+
+    power_timer0_enable();
+    power_timer1_enable();
+    power_timer2_enable();
+    power_spi_enable();
+    power_twi_enable();
+    power_adc_enable();
+    ADCSRA |= _BV(ADEN);
+}
 void run_gps_flow() {
     SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
@@ -63,14 +111,30 @@ void run_sim_flow() {
 }
 void setup() {
     Serial.begin(115200);
+    delay(100);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
     Serial.println(F("start"));
 #endif
+    pinMode(kWakeInt0Pin, INPUT_PULLUP);
+    delay(100);
+    attachInterrupt(digitalPinToInterrupt(kWakeInt0Pin), on_int0_wake, FALLING);
+
     //USE ONLY WITH EEPROM CLEAR
     //EepromRepository eeprom_repository;
     //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX  ); // bootstrap one-shot
 }
 void loop() {
+    if (!g_stay_awake_latched) {
+        g_woke_from_int0 = false;
+        g_woke_from_wdt = false;
+        enter_deep_sleep();
+        if (g_woke_from_int0) {
+            g_stay_awake_latched = true;
+        }
+        if (g_woke_from_wdt && !g_woke_from_int0) {
+            return;
+        }
+    }
     run_gps_flow();
     run_sim_flow();
     Serial.print(F("Free RAM after SIM: "));
