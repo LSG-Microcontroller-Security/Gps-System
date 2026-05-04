@@ -11,6 +11,7 @@
 #include "src/mf_repository_NmeaGpsRepository.h"
 #include "src/mf_repository_SimRepository.h"
 #include "src/mf_activity_NmeaGpsActivity.h"
+#include <mf_repository_AvrMicroRepository.h>
 #include "src/GpsSystem_BL.h"
 extern unsigned int __heap_start;
 extern void* __brkval;
@@ -62,6 +63,9 @@ void run_sim_flow() {
 }
 void setup() {
     Serial.begin(115200);
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+    Serial.println(F("start"));
+#endif
     //USE ONLY WITH EEPROM CLEAR
     //EepromRepository eeprom_repository;
     //(void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX  ); // bootstrap one-shot

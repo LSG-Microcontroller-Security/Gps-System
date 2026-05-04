@@ -295,12 +295,14 @@ uint8_t SimRepository::findSmsWithContent(const char* pattern) {
         max_index_to_scan = 255;
     }
 
+    char buffer[sim_sms_message_buffer_size];
+
     for (uint8_t i = 1; i <= max_index_to_scan; ++i) {
-        if (!readSms(i, sms_message_buffer_)) {
+        if (!readSms(i, buffer)) {
             continue;
         }
 
-        if (strcmp(sms_message_buffer_, pattern) == 0) {
+        if (strcmp(buffer, pattern) == 0) {
             return i;
         }
     }

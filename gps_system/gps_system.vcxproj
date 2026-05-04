@@ -98,6 +98,7 @@
     <ProjectCapability Include="VisualMicro" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.h" />
     <ClInclude Include="AppConfig.h" />
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h" />
     <ClInclude Include="src\GpsSystem_BL.h" />

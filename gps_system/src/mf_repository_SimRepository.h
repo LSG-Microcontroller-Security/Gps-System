@@ -62,5 +62,4 @@ private:
     uint8_t power_pin_;
     unsigned long baud_rate_;
     bool is_sms_receive_initialized_;
-    char sms_message_buffer_[16];
 };
