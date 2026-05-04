@@ -26,6 +26,8 @@ public:
     virtual bool isRegisteredToNetwork();
     virtual int getSignalStrength();
     virtual bool isGprsAttached();
+    virtual bool enterSleepMode();
+    virtual bool exitSleepMode();
     virtual bool listen();
     virtual bool is_listening();
     virtual bool stop_listening();
@@ -47,6 +49,8 @@ public:
     bool isRegisteredToNetwork();
     int getSignalStrength();
     bool isGprsAttached();
+    bool enterSleepMode();
+    bool exitSleepMode();
     bool listen();
     bool is_listening();
     bool stop_listening();
@@ -60,7 +64,7 @@ private:
 
 private:
     ISerial& serial_;
-    uint8_t power_pin_;
+    uint8_t dtr_pin_;
     unsigned long baud_rate_;
     bool is_sms_receive_initialized_;
 };

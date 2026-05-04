@@ -36,6 +36,8 @@ constexpr uint8_t kGpsPowerPin = 12U;
 volatile bool g_woke_from_int0 = false;
 volatile bool g_woke_from_wdt = false;
 bool g_stay_awake_latched = false;
+bool g_tilt_interrupt_locked = false;
+uint16_t g_tilt_lock_wdt_ticks_remaining = 0U;
 
 ISR(WDT_vect) {
     g_woke_from_wdt = true;
@@ -53,6 +55,7 @@ void disable_watchdog() {
 }
 void enter_deep_sleep() {
     digitalWrite(kGpsPowerPin, LOW);
+    sim_800c_enter_sleep_mode();
     ADCSRA &= static_cast<uint8_t>(~_BV(ADEN));
     power_adc_disable();
     power_spi_disable();
@@ -76,11 +79,26 @@ void enter_deep_sleep() {
     power_twi_enable();
     power_adc_enable();
     ADCSRA |= _BV(ADEN);
+    sim_800c_exit_sleep_mode();
+}
+void sim_800c_enter_sleep_mode() {
+    SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
+    SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+    EepromRepository eeprom_repository;
+	sim800c_repository.enterSleepMode();
+}
+void sim_800c_exit_sleep_mode() {
+    SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
+    SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+    EepromRepository eeprom_repository;
+    sim800c_repository.exitSleepMode();
 }
 void turnOffSimLed() {
     SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
     EepromRepository eeprom_repository;
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     sim_bl.set_sim_netlight_enabled(false);
@@ -89,7 +107,7 @@ void make_alarm_call() {
     if (GpsSystem_BL::get_if_call_disabled()) return;
     SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
     EepromRepository eeprom_repository;
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
@@ -112,7 +130,7 @@ void run_gps_flow() {
 void run_sim_flow() {
     SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
     SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-    SimRepository sim800c_repository(sim800c_software_serial_adapter, 0, APP_SIM_SERIAL_BAUD_RATE);
+    SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
     EepromRepository eeprom_repository;
     GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
     if (is_first_sim_flow_run) {
@@ -131,6 +149,17 @@ void run_sim_flow() {
         digitalWrite(kGpsPowerPin, LOW);
         GpsSystem_BL::clear_sleep_mode_requested();
     }
+    if (GpsSystem_BL::get_if_tilt_lock_requested()) {
+        const uint16_t minutes = GpsSystem_BL::get_tilt_lock_minutes();
+        g_stay_awake_latched = false;
+        digitalWrite(kGpsPowerPin, LOW);
+        g_tilt_interrupt_locked = true;
+        const unsigned long total_seconds = static_cast<unsigned long>(minutes) * 60UL;
+        const unsigned long ticks = (total_seconds + 7UL) / 8UL;
+        g_tilt_lock_wdt_ticks_remaining = (ticks > 65535UL) ? 65535U : static_cast<uint16_t>(ticks);
+        detachInterrupt(digitalPinToInterrupt(kWakeInt0Pin));
+        GpsSystem_BL::clear_tilt_lock_requested();
+    }
 }
 void setup() {
     Serial.begin(115200);
@@ -138,6 +167,7 @@ void setup() {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
     Serial.println(F("start"));
 #endif
+    delay(1000);
     pinMode(kWakeInt0Pin, INPUT_PULLUP);
     pinMode(kGpsPowerPin, OUTPUT);
     digitalWrite(kGpsPowerPin, LOW);
@@ -153,6 +183,15 @@ void loop() {
         g_woke_from_int0 = false;
         g_woke_from_wdt = false;
         enter_deep_sleep();
+        if (g_tilt_interrupt_locked && g_woke_from_wdt) {
+            if (g_tilt_lock_wdt_ticks_remaining > 0U) {
+                --g_tilt_lock_wdt_ticks_remaining;
+            }
+            if (g_tilt_lock_wdt_ticks_remaining == 0U) {
+                g_tilt_interrupt_locked = false;
+                attachInterrupt(digitalPinToInterrupt(kWakeInt0Pin), on_int0_wake, FALLING);
+            }
+        }
         if (g_woke_from_int0) {
             g_stay_awake_latched = true;
             

@@ -2,11 +2,14 @@
 #include "GpsSystem_BL.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <Arduino.h>
 
 bool GpsSystem_BL::is_call_disabled = false;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_requested = false;
+bool GpsSystem_BL::is_tilt_lock_requested = false;
+uint16_t GpsSystem_BL::tilt_lock_minutes = 0U;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -101,6 +104,25 @@ bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
 void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status) {
     if (message == nullptr || message[0] == '\0') {
         return;
+    }
+    if (message[0] == 'D' && message[1] == 'c') {
+        uint16_t minutes = 0U;
+        for (uint8_t i = 2U; message[i] != '\0'; ++i) {
+            if (message[i] < '0' || message[i] > '9') {
+                minutes = 0U;
+                break;
+            }
+            minutes = static_cast<uint16_t>((minutes * 10U) + static_cast<uint16_t>(message[i] - '0'));
+        }
+        if (minutes > 0U) {
+            if (minutes > 240U) {
+                minutes = 240U;
+            }
+            tilt_lock_minutes = minutes;
+            is_sleep_mode_requested = true;
+            is_tilt_lock_requested = true;
+            return;
+        }
     }
 
     switch (message[0]) {
@@ -233,4 +255,14 @@ bool GpsSystem_BL::get_if_sleep_mode_requested() {
 }
 void GpsSystem_BL::clear_sleep_mode_requested() {
     is_sleep_mode_requested = false;
+}
+bool GpsSystem_BL::get_if_tilt_lock_requested() {
+    return is_tilt_lock_requested;
+}
+uint16_t GpsSystem_BL::get_tilt_lock_minutes() {
+    return tilt_lock_minutes;
+}
+void GpsSystem_BL::clear_tilt_lock_requested() {
+    is_tilt_lock_requested = false;
+    tilt_lock_minutes = 0U;
 }
