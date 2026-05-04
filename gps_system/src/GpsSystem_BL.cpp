@@ -156,7 +156,7 @@ void GpsSystem_BL::startSmsReception() {
 		return;
 	}
 	this->sim_repository_->listen();
-	this->sim_repository_->initSmsReception();
+	this->sim_repository_->initSmsReception(false);
 }
 bool GpsSystem_BL::load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
     if (eeprom_repository_ == nullptr) {

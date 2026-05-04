@@ -24,6 +24,8 @@
 #define AT_NETWORK_REGISTRATION      "AT+CREG?"
 #define AT_SIGNAL_STRENGTH           "AT+CSQ"
 #define AT_GPRS_ATTACHED             "AT+CGATT?"
+#define AT_SET_CNMI                  "AT+CNMI=2,1,0,0,0"
+#define AT_SET_NETLIGHT_OFF          "AT+CNETLIGHT=0"
 
 namespace {
     constexpr uint8_t sim_response_buffer_size = 20;
@@ -105,7 +107,7 @@ void SimRepository::sendSms(const char* number, const char* message) {
     wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
 }
 
-void SimRepository::initSmsReception() {
+void SimRepository::initSmsReception(bool keep_netlight_on) {
     bool ok = true;
     clear_receive_buffer();
     send_at_cmd(serial_, AT_SET_SMS_MEMORY);
@@ -120,8 +122,14 @@ void SimRepository::initSmsReception() {
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
 
     clear_receive_buffer();
-    send_at_cmd(serial_, "AT+CNMI=2,1,0,0,0");
+    send_at_cmd(serial_, AT_SET_CNMI);
     ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
+
+    if (!keep_netlight_on) {
+        clear_receive_buffer();
+        send_at_cmd(serial_, AT_SET_NETLIGHT_OFF);
+        ok = ok && wait_for_pattern(LITERAL_OK, 5000UL);
+    }
 
     is_sms_receive_initialized_ = ok;
 }

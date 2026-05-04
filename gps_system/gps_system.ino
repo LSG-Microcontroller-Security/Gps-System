@@ -32,6 +32,7 @@ int freeMemory() {
 GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
 constexpr uint8_t kWakeInt0Pin = 2U; // INT0 on ATmega328P (Nano D2)
+constexpr uint8_t kGpsPowerPin = 12U;
 volatile bool g_woke_from_int0 = false;
 volatile bool g_woke_from_wdt = false;
 bool g_stay_awake_latched = false;
@@ -51,6 +52,7 @@ void disable_watchdog() {
     wdt_disable();
 }
 void enter_deep_sleep() {
+    digitalWrite(kGpsPowerPin, LOW);
     ADCSRA &= static_cast<uint8_t>(~_BV(ADEN));
     power_adc_disable();
     power_spi_disable();
@@ -74,6 +76,7 @@ void enter_deep_sleep() {
     power_twi_enable();
     power_adc_enable();
     ADCSRA |= _BV(ADEN);
+    digitalWrite(kGpsPowerPin, HIGH);
 }
 void run_gps_flow() {
     SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
@@ -109,6 +112,8 @@ void setup() {
     Serial.println(F("start"));
 #endif
     pinMode(kWakeInt0Pin, INPUT_PULLUP);
+    pinMode(kGpsPowerPin, OUTPUT);
+    digitalWrite(kGpsPowerPin, HIGH);
     delay(100);
     attachInterrupt(digitalPinToInterrupt(kWakeInt0Pin), on_int0_wake, FALLING);
 
