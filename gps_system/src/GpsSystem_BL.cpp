@@ -5,7 +5,7 @@
 #include <string.h>
 #include <Arduino.h>
 
-bool GpsSystem_BL::is_call_disabled = false;
+bool GpsSystem_BL::is_interrupt_call_disabled = false;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_requested = false;
 
@@ -108,14 +108,14 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	}
 	case '*': {
 		is_sleep_mode_requested = true;
-		is_call_disabled = true;
+		is_interrupt_call_disabled = true;
 		is_gps_flow_enabled = false;
 		break;
 	}
 
 	default: {
 		if (!is_gps_flow_enabled) {
-			is_call_disabled = true;
+			is_interrupt_call_disabled = true;
 			is_gps_flow_enabled = true;
 			is_sleep_mode_requested = false;
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
@@ -193,8 +193,8 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
 
 	return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
-bool GpsSystem_BL::get_if_call_disabled() {
-	return is_call_disabled;
+bool GpsSystem_BL::get_if_interrupt_call_disabled() {
+	return is_interrupt_call_disabled;
 }
 bool GpsSystem_BL::get_if_gps_flow_enabled() {
 	return is_gps_flow_enabled;

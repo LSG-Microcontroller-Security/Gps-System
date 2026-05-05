@@ -107,6 +107,7 @@
     <ClInclude Include="src\mf_repository_EepromRepository.h" />
     <ClInclude Include="src\mf_repository_NmeaGpsRepository.h" />
     <ClInclude Include="src\mf_repository_SimRepository.h" />
+    <ClInclude Include="src\SoftwareSerial.h" />
     <ClInclude Include="__vm\.gps_system.vsarduino.h" />
   </ItemGroup>
   <PropertyGroup>

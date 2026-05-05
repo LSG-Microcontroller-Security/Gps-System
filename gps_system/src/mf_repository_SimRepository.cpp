@@ -13,6 +13,8 @@
 #define AT_SEND_SMS_PREFIX           "AT+CMGS=\""
 #define AT_SEND_SMS_HEADER           "+CMGS:"
 #define LITERAL_OK                   "OK"
+#define LITERAL_ERROR                "ERROR"
+#define LITERAL_PROMPT               ">"
 #define LITERAL_CTRL_Z               ((char)26)
 #define LITERAL_RETURN               "\r\n"
 #define AT_READ_SMS_PREFIX           "AT+CMGR="
@@ -26,12 +28,21 @@
 #define AT_GPRS_ATTACHED             "AT+CGATT?"
 #define AT_SET_CNMI                  "AT+CNMI=2,1,0,0,0"
 #define AT_SET_NETLIGHT_OFF          "AT+CNETLIGHT=0"
+#define AT_SET_NETLIGHT_ON           "AT+CNETLIGHT=1"
 #define AT_ENABLE_DTR_SLEEP          "AT+CSCLK=1"
+#define AT_BASIC_COMMAND             "AT"
+#define RESPONSE_NETWORK_REGISTRATION_HEADER "+CREG:"
+#define RESPONSE_SIGNAL_STRENGTH_HEADER "+CSQ:"
+#define RESPONSE_GPRS_ATTACHED_HEADER "+CGATT:"
+#define RESPONSE_OK_WITH_CRLF        "\r\nOK\r\n"
+#define RESPONSE_ERROR_WITH_CRLF     "\r\nERROR\r\n"
+#define RESPONSE_OK_SUFFIX           "OK\r\n"
+#define RESPONSE_ERROR_SUFFIX        "ERROR\r\n"
+#define DEBUG_SMS_LABEL              "sms"
 
 namespace {
-	constexpr uint8_t sim_response_buffer_size = 20;
 	constexpr uint8_t sim_small_response_buffer_size = 20;
-	constexpr uint8_t sim_sms_message_buffer_size = 16;
+	constexpr uint8_t sim_sms_message_buffer_size = 5;
 	constexpr unsigned long sim_read_sms_timeout_ms = 900UL;
 
 	inline void send_at_cmd(ISerial& serial, const char* cmd) {
@@ -101,11 +112,11 @@ void SimRepository::sendSms(const char* number, const char* message) {
 	serial_.print(AT_SEND_SMS_PREFIX);
 	serial_.print(number);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-	Serial.print("sms"); Serial.println(number);
+	Serial.print(F(DEBUG_SMS_LABEL)); Serial.println(number);
 #endif
 	serial_.write((uint8_t)'"');
 	serial_.write((uint8_t)'\r');
-	wait_for_pattern(">", 3000UL);
+	wait_for_pattern(LITERAL_PROMPT, 3000UL);
 	serial_.print(message);
 	serial_.write((uint8_t)LITERAL_CTRL_Z);
 	wait_for_pattern(AT_SEND_SMS_HEADER, 12000UL) || wait_for_pattern(LITERAL_OK, 12000UL);
@@ -138,7 +149,7 @@ void SimRepository::initSmsReception() {
 
 bool SimRepository::setNetlightEnabled(bool enabled) {
 	clear_receive_buffer();
-	send_at_cmd(serial_, enabled ? "AT+CNETLIGHT=1" : AT_SET_NETLIGHT_OFF);
+	send_at_cmd(serial_, enabled ? AT_SET_NETLIGHT_ON : AT_SET_NETLIGHT_OFF);
 	return wait_for_pattern(LITERAL_OK, 5000UL);
 }
 
@@ -186,10 +197,10 @@ bool SimRepository::readSms(uint8_t index, char* message) {
 		}
 		trailer[trailer_pos < static_cast<uint8_t>(sizeof(trailer)) ? trailer_pos : static_cast<uint8_t>(sizeof(trailer) - 1U)] = '\0';
 
-		if (strstr(trailer, "ERROR") != nullptr) {
+		if (strstr(trailer, LITERAL_ERROR) != nullptr) {
 			break;
 		}
-		if (state >= 2U && strstr(trailer, "OK") != nullptr) {
+		if (state >= 2U && strstr(trailer, LITERAL_OK) != nullptr) {
 			break;
 		}
 
@@ -330,7 +341,7 @@ bool SimRepository::isRegisteredToNetwork() {
 	char buffer[sim_small_response_buffer_size];
 	read_response(buffer, sim_small_response_buffer_size, 2000UL);
 
-	char* creg = strstr(buffer, "+CREG:");
+	char* creg = strstr(buffer, RESPONSE_NETWORK_REGISTRATION_HEADER);
 	if (creg == nullptr) {
 		return false;
 	}
@@ -352,7 +363,7 @@ int SimRepository::getSignalStrength() {
 	char buffer[sim_small_response_buffer_size];
 	read_response(buffer, sim_small_response_buffer_size, 2000UL);
 
-	char* csq = strstr(buffer, "+CSQ:");
+	char* csq = strstr(buffer, RESPONSE_SIGNAL_STRENGTH_HEADER);
 	if (csq == nullptr) {
 		return -1;
 	}
@@ -373,7 +384,7 @@ bool SimRepository::isGprsAttached() {
 	char buffer[sim_small_response_buffer_size];
 	read_response(buffer, sim_small_response_buffer_size, 2000UL);
 
-	char* ptr = strstr(buffer, "+CGATT:");
+	char* ptr = strstr(buffer, RESPONSE_GPRS_ATTACHED_HEADER);
 	if (ptr == nullptr) {
 		return false;
 	}
@@ -401,7 +412,7 @@ bool SimRepository::exitSleepMode() {
 	digitalWrite(dtr_pin_, LOW);
 	delay(200UL);
 	clear_receive_buffer();
-	send_at_cmd(serial_, "AT");
+	send_at_cmd(serial_, AT_BASIC_COMMAND);
 	return wait_for_pattern(LITERAL_OK, 3000UL);
 }
 
@@ -473,11 +484,11 @@ uint8_t SimRepository::read_response(char* buffer, uint8_t buffer_size, unsigned
 		buffer[pos++] = static_cast<char>(read_value);
 		buffer[pos] = '\0';
 
-		if (strstr(buffer, "\r\nOK\r\n") != nullptr || strstr(buffer, "\r\nERROR\r\n") != nullptr) {
+		if (strstr(buffer, RESPONSE_OK_WITH_CRLF) != nullptr || strstr(buffer, RESPONSE_ERROR_WITH_CRLF) != nullptr) {
 			break;
 		}
 
-		if (strstr(buffer, "OK\r\n") != nullptr || strstr(buffer, "ERROR\r\n") != nullptr) {
+		if (strstr(buffer, RESPONSE_OK_SUFFIX) != nullptr || strstr(buffer, RESPONSE_ERROR_SUFFIX) != nullptr) {
 			break;
 		}
 	}

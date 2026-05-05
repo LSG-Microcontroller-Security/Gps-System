@@ -5,7 +5,7 @@
  Author:    luigi
 */
 #include <Arduino.h>
-#include <SoftwareSerial.h>
+#include "SoftwareSerial.h"
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <avr/sleep.h>
@@ -47,6 +47,7 @@ volatile bool watchdog_wake_state = false;
 
 bool system_awake_latch_state = false;
 bool sim800c_sleep_state = false;
+bool interrupt_call_attach_state = true;
 
 // Watchdog counters
 uint8_t watchdog_poll_elapsed_ticks = 0U;
@@ -123,8 +124,8 @@ void loop() {
 		}
 		interrupt_0_wake_state = false;
 
-		// Dopo la chiamata torniamo in sleep se richiesto, oppure se il GPS flow non e' attivo.
-		if (system_awake_latch_state && (GpsSystem_BL::get_if_sleep_mode_requested() || !GpsSystem_BL::get_if_gps_flow_enabled())) {
+		// Dopo la chiamata torniamo in sleep se il GPS flow non e' attivo.
+		if (system_awake_latch_state && !GpsSystem_BL::get_if_gps_flow_enabled()) {
 			system_awake_latch_state = false;
 			watchdog_poll_elapsed_ticks = 0U;
 		}
@@ -200,7 +201,7 @@ void turnOffSimLed() {
 }
 
 void make_alarm_call() {
-	if (GpsSystem_BL::get_if_call_disabled()) return;
+	if (GpsSystem_BL::get_if_interrupt_call_disabled()) return;
 
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
@@ -242,12 +243,25 @@ void run_sim_flow() {
 		is_first_sim_flow_run = false;
 	}
 
-	char message_buffer[16];
+	char message_buffer[5];
 
 	if (sim_bl.check_if_sms_arrived()) {
 		if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
 			sim_bl.analyze_sms_message(message_buffer, gps_connection_status);
 		}
+	}
+
+	// L'interrupt INT0 resta attivo solo quando le chiamate da interrupt sono abilitate.
+	if (GpsSystem_BL::get_if_interrupt_call_disabled()) {
+		if (interrupt_call_attach_state) {
+			detachInterrupt(digitalPinToInterrupt(interrupt_pin));
+			interrupt_call_attach_state = false;
+			interrupt_0_wake_state = false;
+		}
+	}
+	else if (!interrupt_call_attach_state) {
+		attachInterrupt(digitalPinToInterrupt(interrupt_pin), on_int0_wake, FALLING);
+		interrupt_call_attach_state = true;
 	}
 
 	if (GpsSystem_BL::get_if_sleep_mode_requested()) {

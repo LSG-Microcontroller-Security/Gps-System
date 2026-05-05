@@ -83,5 +83,8 @@
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.h">
       <Filter>repository</Filter>
     </ClInclude>
+    <ClInclude Include="src\SoftwareSerial.h">
+      <Filter>repository</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
