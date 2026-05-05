@@ -167,7 +167,7 @@ void setup() {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
     Serial.println(F("start"));
 #endif
-    delay(1000);
+    delay(10000);
     pinMode(kWakeInt0Pin, INPUT_PULLUP);
     pinMode(kGpsPowerPin, OUTPUT);
     digitalWrite(kGpsPowerPin, LOW);
