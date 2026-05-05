@@ -123,8 +123,8 @@ void loop() {
 		}
 		interrupt_0_wake_state = false;
 
-		// Se nessun SMS ha attivato il flusso GPS, dopo la chiamata torniamo subito in sleep.
-		if (system_awake_latch_state && !GpsSystem_BL::get_if_gps_flow_enabled()) {
+		// Dopo la chiamata torniamo in sleep se richiesto, oppure se il GPS flow non e' attivo.
+		if (system_awake_latch_state && (GpsSystem_BL::get_if_sleep_mode_requested() || !GpsSystem_BL::get_if_gps_flow_enabled())) {
 			system_awake_latch_state = false;
 			watchdog_poll_elapsed_ticks = 0U;
 		}
@@ -250,18 +250,16 @@ void run_sim_flow() {
 		}
 	}
 
-	if (GpsSystem_BL::get_if_wake_mode_requested()) {
-		system_awake_latch_state = true;
-		watchdog_poll_elapsed_ticks = 0U;
-		/*digitalWrite(kGpsPowerPin, LOW);*/
-		GpsSystem_BL::clear_wake_mode_requested();
-	}
-
 	if (GpsSystem_BL::get_if_sleep_mode_requested()) {
 		system_awake_latch_state = false;
 		watchdog_poll_elapsed_ticks = 0U;
 		digitalWrite(gps_power_pin, LOW);
 		GpsSystem_BL::clear_sleep_mode_requested();
+	}
+
+	if (GpsSystem_BL::get_if_gps_flow_enabled()) {
+		system_awake_latch_state = true;
+		watchdog_poll_elapsed_ticks = 0U;
 	}
 }
 

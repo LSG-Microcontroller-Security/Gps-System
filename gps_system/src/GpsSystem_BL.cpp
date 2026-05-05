@@ -8,7 +8,6 @@
 bool GpsSystem_BL::is_call_disabled = false;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_requested = false;
-bool GpsSystem_BL::is_wake_mode_requested = false;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -109,14 +108,16 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	}
 	case '*': {
 		is_sleep_mode_requested = true;
+		is_call_disabled = true;
+		is_gps_flow_enabled = false;
 		break;
 	}
 
 	default: {
-		if (!is_call_disabled || !is_gps_flow_enabled) {
+		if (!is_gps_flow_enabled) {
 			is_call_disabled = true;
 			is_gps_flow_enabled = true;
-			is_wake_mode_requested = true;
+			is_sleep_mode_requested = false;
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("call disabled + gps flow enabled"));
 #endif
@@ -203,13 +204,4 @@ bool GpsSystem_BL::get_if_sleep_mode_requested() {
 }
 void GpsSystem_BL::clear_sleep_mode_requested() {
 	is_sleep_mode_requested = false;
-}
-bool GpsSystem_BL::get_if_wake_mode_requested() {
-	return is_wake_mode_requested;
-}
-void GpsSystem_BL::set_wake_mode_requested() {
-	is_wake_mode_requested = true;
-}
-void GpsSystem_BL::clear_wake_mode_requested() {
-	is_wake_mode_requested = false;
 }

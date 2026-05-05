@@ -33,13 +33,10 @@ public:
     void analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status);
     void hang_up_phone_call();
     void startSmsReception();
-	static bool get_if_call_disabled();
+    static bool get_if_call_disabled();
     static bool get_if_gps_flow_enabled();
     static bool get_if_sleep_mode_requested();
     static void clear_sleep_mode_requested();
-    static bool get_if_wake_mode_requested();
-    static void set_wake_mode_requested();
-    static void clear_wake_mode_requested();
     static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
         const char* phone_local_number);
@@ -49,7 +46,6 @@ private:
     static bool is_call_disabled;
     static bool is_gps_flow_enabled;
     static bool is_sleep_mode_requested;
-    static bool is_wake_mode_requested;
     NmeaGpsActivity* gps_activity_;
     SimRepository* sim_repository_;
     EepromRepository* eeprom_repository_;
