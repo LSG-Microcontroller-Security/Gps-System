@@ -81,7 +81,6 @@ void setup() {
 
 void loop() {
 	if (!system_awake_latch_state) {
-		interrupt_0_wake_state = false;
 		watchdog_wake_state = false;
 		digitalWrite(gps_power_pin, LOW);
 		if (!sim800c_sleep_state) {
@@ -126,13 +125,22 @@ void loop() {
 		}
 	}
 
-	if (interrupt_0_wake_state) {
-		make_alarm_call();
-		interrupt_0_wake_state = false;
-	}
-
 	run_gps_flow();
 	run_sim_flow();
+
+	// Prima leggiamo e applichiamo le direttive SMS, poi facciamo l'eventuale chiamata da wake interrupt.
+	if (interrupt_0_wake_state) {
+		if (system_awake_latch_state) {
+			make_alarm_call();
+		}
+		interrupt_0_wake_state = false;
+
+		// Se nessun SMS ha attivato il flusso GPS, dopo la chiamata torniamo subito in sleep.
+		if (system_awake_latch_state && !GpsSystem_BL::get_if_gps_flow_enabled()) {
+			system_awake_latch_state = false;
+			watchdog_poll_elapsed_ticks = 0U;
+		}
+	}
 
 	Serial.print(F("Free RAM after SIM: "));
 	Serial.println(freeMemory());
