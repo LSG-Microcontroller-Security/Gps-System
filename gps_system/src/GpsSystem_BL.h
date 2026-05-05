@@ -40,9 +40,6 @@ public:
     static bool get_if_wake_mode_requested();
     static void set_wake_mode_requested();
     static void clear_wake_mode_requested();
-    static bool get_if_tilt_lock_requested();
-    static uint16_t get_tilt_lock_minutes();
-    static void clear_tilt_lock_requested();
     static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
         const char* phone_local_number);
@@ -53,8 +50,6 @@ private:
     static bool is_gps_flow_enabled;
     static bool is_sleep_mode_requested;
     static bool is_wake_mode_requested;
-    static bool is_tilt_lock_requested;
-    static uint16_t tilt_lock_minutes;
     NmeaGpsActivity* gps_activity_;
     SimRepository* sim_repository_;
     EepromRepository* eeprom_repository_;

@@ -46,12 +46,10 @@ volatile bool interrupt_0_wake_state = false;
 volatile bool watchdog_wake_state = false;
 
 bool system_awake_latch_state = false;
-bool tilt_interrupt_lock_state = false;
 bool sim800c_sleep_state = false;
 
 // Watchdog counters
 uint8_t watchdog_poll_elapsed_ticks = 0U;
-uint16_t watchdog_tilt_lock_remaining_ticks = 0U;
 
 ISR(WDT_vect) {
 	watchdog_wake_state = true;
@@ -88,16 +86,6 @@ void loop() {
 			sim800c_sleep_state = true;
 		}
 		enter_deep_sleep();
-		// Questo blocco viene valutato a ogni wake da watchdog, solo quando il lock interrupt e' attivo.
-		if (tilt_interrupt_lock_state && watchdog_wake_state) {
-			if (watchdog_tilt_lock_remaining_ticks > 0U) {
-				--watchdog_tilt_lock_remaining_ticks;
-			}
-			if (watchdog_tilt_lock_remaining_ticks == 0U) {
-				tilt_interrupt_lock_state = false;
-				attachInterrupt(digitalPinToInterrupt(interrupt_pin), on_int0_wake, FALLING);
-			}
-		}
 		if (interrupt_0_wake_state) {
 			if (sim800c_sleep_state) {
 				sim_800c_exit_sleep_mode();
@@ -219,7 +207,6 @@ void make_alarm_call() {
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
-
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
 	sim_bl.load_phone_number_from_eeprom_with_prefix(number);
 	sim800c_repository.call(number);
@@ -275,19 +262,6 @@ void run_sim_flow() {
 		watchdog_poll_elapsed_ticks = 0U;
 		digitalWrite(gps_power_pin, LOW);
 		GpsSystem_BL::clear_sleep_mode_requested();
-	}
-	
-	if (GpsSystem_BL::get_if_tilt_lock_requested()) {
-		const uint16_t minutes = GpsSystem_BL::get_tilt_lock_minutes();
-		system_awake_latch_state = false;
-		watchdog_poll_elapsed_ticks = 0U;
-		digitalWrite(gps_power_pin, LOW);
-		tilt_interrupt_lock_state = true;
-		const unsigned long total_seconds = static_cast<unsigned long>(minutes) * 60UL;
-		const unsigned long ticks = (total_seconds + 7UL) / 8UL;
-		watchdog_tilt_lock_remaining_ticks = (ticks > 65535UL) ? 65535U : static_cast<uint16_t>(ticks);
-		detachInterrupt(digitalPinToInterrupt(interrupt_pin));
-		GpsSystem_BL::clear_tilt_lock_requested();
 	}
 }
 
