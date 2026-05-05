@@ -8,18 +8,19 @@
 bool GpsSystem_BL::is_call_disabled = false;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_requested = false;
+bool GpsSystem_BL::is_wake_mode_requested = false;
 bool GpsSystem_BL::is_tilt_lock_requested = false;
 uint16_t GpsSystem_BL::tilt_lock_minutes = 0U;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
 	sim_repository_(nullptr),
-    eeprom_repository_(nullptr) {
+	eeprom_repository_(nullptr) {
 }
 GpsSystem_BL::GpsSystem_BL(SimRepository* sim_repository, EepromRepository* eeprom_repository)
 	: gps_activity_(nullptr),
 	sim_repository_(sim_repository),
-    eeprom_repository_(eeprom_repository) {
+	eeprom_repository_(eeprom_repository) {
 }
 bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	if (gps_activity_ == nullptr) {
@@ -40,44 +41,44 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	return true;
 }
 void GpsSystem_BL::call_phone_number() {
-    char number[sizeof(APP_PHONE_NUMBER)] = {};
-    load_phone_number_from_eeprom_with_prefix(number);
+	char number[sizeof(APP_PHONE_NUMBER)] = {};
+	load_phone_number_from_eeprom_with_prefix(number);
 
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-    Serial.print(F("calling number: "));
-    Serial.println(number);
+	Serial.print(F("calling number: "));
+	Serial.println(number);
 #endif
 	sim_repository_->listen();
-    sim_repository_->call(number);
+	sim_repository_->call(number);
 }
 void GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
-    char number[sizeof(APP_PHONE_NUMBER)] = {};
-    load_phone_number_from_eeprom_with_prefix(number);
-    char sms_message[112];
-    const int written = snprintf(
-        sms_message,
-        sizeof(sms_message),
-        "https://www.google.com/maps/search/?api=1&query=%ld.%06ld,%ld.%06ld ALT=%ld.%01ldm SPD=%ld.%02ldkn",
-        gps_sms_data.latitude_x1000000 / 1000000L,
-        labs(gps_sms_data.latitude_x1000000 % 1000000L),
-        gps_sms_data.longitude_x1000000 / 1000000L,
-        labs(gps_sms_data.longitude_x1000000 % 1000000L),
-        gps_sms_data.altitude_m_x10 / 10L,
-        labs(gps_sms_data.altitude_m_x10 % 10L),
-        gps_sms_data.speed_knots_x100 / 100L,
-        labs(gps_sms_data.speed_knots_x100 % 100L));
+	char number[sizeof(APP_PHONE_NUMBER)] = {};
+	load_phone_number_from_eeprom_with_prefix(number);
+	char sms_message[112];
+	const int written = snprintf(
+		sms_message,
+		sizeof(sms_message),
+		"https://www.google.com/maps/search/?api=1&query=%ld.%06ld,%ld.%06ld ALT=%ld.%01ldm SPD=%ld.%02ldkn",
+		gps_sms_data.latitude_x1000000 / 1000000L,
+		labs(gps_sms_data.latitude_x1000000 % 1000000L),
+		gps_sms_data.longitude_x1000000 / 1000000L,
+		labs(gps_sms_data.longitude_x1000000 % 1000000L),
+		gps_sms_data.altitude_m_x10 / 10L,
+		labs(gps_sms_data.altitude_m_x10 % 10L),
+		gps_sms_data.speed_knots_x100 / 100L,
+		labs(gps_sms_data.speed_knots_x100 % 100L));
 
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-    Serial.print(F("sms: "));
-    Serial.println(sms_message);
+	Serial.print(F("sms: "));
+	Serial.println(sms_message);
 #endif
-    //NON ATTIVARE MAI
-    sim_repository_->listen();
-    sim_repository_->sendSms(number, sms_message);
+	//NON ATTIVARE MAI
+	sim_repository_->listen();
+	sim_repository_->sendSms(number, sms_message);
 }
 bool GpsSystem_BL::check_if_sms_arrived() {
 	if (sim_repository_ == nullptr) {
-			return false;
+		return false;
 	}
 	this->sim_repository_->listen();
 	this->sim_repository_->delay(100); // Attendo un breve periodo per assicurarmi che eventuali SMS in arrivo vengano registrati.
@@ -86,94 +87,95 @@ bool GpsSystem_BL::check_if_sms_arrived() {
 	return sms_count > 0;
 }
 bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
-    if (sim_repository_ == nullptr || out_message == nullptr || out_message_size == 0U) {
-        return false;
-    }
+	if (sim_repository_ == nullptr || out_message == nullptr || out_message_size == 0U) {
+		return false;
+	}
 
-    out_message[0] = '\0';
-    sim_repository_->listen();
+	out_message[0] = '\0';
+	sim_repository_->listen();
 
-    if (!sim_repository_->readSms(1U, out_message)) {
-        return false;
-    }
+	if (!sim_repository_->readSms(1U, out_message)) {
+		return false;
+	}
 
-    out_message[out_message_size - 1U] = '\0';
-    (void)sim_repository_->deleteSmsAt(1U);
-    return true;
+	out_message[out_message_size - 1U] = '\0';
+	(void)sim_repository_->deleteSmsAt(1U);
+	return true;
 }
 void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status) {
-    if (message == nullptr || message[0] == '\0') {
-        return;
-    }
-    if (message[0] == 'D' && message[1] == 'c') {
-        uint16_t minutes = 0U;
-        for (uint8_t i = 2U; message[i] != '\0'; ++i) {
-            if (message[i] < '0' || message[i] > '9') {
-                minutes = 0U;
-                break;
-            }
-            minutes = static_cast<uint16_t>((minutes * 10U) + static_cast<uint16_t>(message[i] - '0'));
-        }
-        if (minutes > 0U) {
-            if (minutes > 240U) {
-                minutes = 240U;
-            }
-            tilt_lock_minutes = minutes;
-            is_sleep_mode_requested = true;
-            is_tilt_lock_requested = true;
-            return;
-        }
-    }
+	if (message == nullptr || message[0] == '\0') {
+		return;
+	}
+	if (message[0] == 'D' && message[1] == 'c') {
+		uint16_t minutes = 0U;
+		for (uint8_t i = 2U; message[i] != '\0'; ++i) {
+			if (message[i] < '0' || message[i] > '9') {
+				minutes = 0U;
+				break;
+			}
+			minutes = static_cast<uint16_t>((minutes * 10U) + static_cast<uint16_t>(message[i] - '0'));
+		}
+		if (minutes > 0U) {
+			if (minutes > 240U) {
+				minutes = 240U;
+			}
+			tilt_lock_minutes = minutes;
+			is_sleep_mode_requested = true;
+			is_tilt_lock_requested = true;
+			return;
+		}
+	}
 
-    switch (message[0]) {
-    case '#': {
-        const char* phone_number = message + 1;
+	switch (message[0]) {
+	case '#': {
+		const char* phone_number = message + 1;
 
-        if (eeprom_repository_ != nullptr) {
-            if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
-               (void)call_phone_number();
-            }
-        }
+		if (eeprom_repository_ != nullptr) {
+			if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
+				(void)call_phone_number();
+			}
+		}
 
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-        Serial.print(F("numero di telefono: "));
-        Serial.println(phone_number);
-        Serial.print(F("comando ricevuto: "));
-        Serial.println(message[0]);
+		Serial.print(F("numero di telefono: "));
+		Serial.println(phone_number);
+		Serial.print(F("comando ricevuto: "));
+		Serial.println(message[0]);
 #endif
 
-        break;
-    }
-    case '*': {
-        is_sleep_mode_requested = true;
-        break;
-    }
+		break;
+	}
+	case '*': {
+		is_sleep_mode_requested = true;
+		break;
+	}
 
-    default: {
-        if (!is_call_disabled || !is_gps_flow_enabled) {
-            is_call_disabled = true;
-            is_gps_flow_enabled = true;
+	default: {
+		if (!is_call_disabled || !is_gps_flow_enabled) {
+			is_call_disabled = true;
+			is_gps_flow_enabled = true;
+			is_wake_mode_requested = true;
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-            Serial.println(F("call disabled + gps flow enabled"));
+			Serial.println(F("call disabled + gps flow enabled"));
 #endif
-            break;
-        }
+			break;
+		}
 
-        const GpsSmsData gps_sms_data = {
-            gps_status.latitude_x1000000,
-            gps_status.longitude_x1000000,
-            gps_status.altitude_m_x10,
-            gps_status.speed_knots_x100
-        };
-        send_sms(gps_sms_data);
+		const GpsSmsData gps_sms_data = {
+			gps_status.latitude_x1000000,
+			gps_status.longitude_x1000000,
+			gps_status.altitude_m_x10,
+			gps_status.speed_knots_x100
+		};
+		send_sms(gps_sms_data);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-        Serial.print(F("comando sconosciuto: "));
-        Serial.println(message);
+		Serial.print(F("comando sconosciuto: "));
+		Serial.println(message);
 #endif
 
-        break;
-    }
-    }
+		break;
+	}
+	}
 }
 void GpsSystem_BL::hang_up_phone_call() {
 	if (sim_repository_ == nullptr) {
@@ -183,18 +185,18 @@ void GpsSystem_BL::hang_up_phone_call() {
 	this->sim_repository_->hangUp();
 }
 void GpsSystem_BL::set_sim_netlight_enabled(bool enabled) {
-    if (sim_repository_ == nullptr) {
-        return;
-    }
-    this->sim_repository_->listen();
-    (void)this->sim_repository_->setNetlightEnabled(enabled);
+	if (sim_repository_ == nullptr) {
+		return;
+	}
+	this->sim_repository_->listen();
+	(void)this->sim_repository_->setNetlightEnabled(enabled);
 }
 void GpsSystem_BL::delete_all_sms() {
-    if (sim_repository_ == nullptr) {
-        return;
-    }
-    this->sim_repository_->listen();
-    this->sim_repository_->deleteAllSms();
+	if (sim_repository_ == nullptr) {
+		return;
+	}
+	this->sim_repository_->listen();
+	this->sim_repository_->deleteAllSms();
 }
 void GpsSystem_BL::startSmsReception() {
 	if (sim_repository_ == nullptr) {
@@ -204,65 +206,74 @@ void GpsSystem_BL::startSmsReception() {
 	this->sim_repository_->initSmsReception();
 }
 bool GpsSystem_BL::load_phone_number_from_eeprom_with_prefix(char (&out_phone_number)[sizeof(APP_PHONE_NUMBER)]) const {
-    if (eeprom_repository_ == nullptr) {
-        return false;
-    }
+	if (eeprom_repository_ == nullptr) {
+		return false;
+	}
 
-    uint8_t out_index = 0U;
-    for (uint8_t i = 0U; APP_PHONE_PREFIX[i] != '\0'; ++i) {
-        out_phone_number[out_index++] = APP_PHONE_PREFIX[i];
-    }
+	uint8_t out_index = 0U;
+	for (uint8_t i = 0U; APP_PHONE_PREFIX[i] != '\0'; ++i) {
+		out_phone_number[out_index++] = APP_PHONE_PREFIX[i];
+	}
 
-    for (uint8_t i = 0U; i < APP_PHONE_LOCAL_NUMBER_LENGTH; ++i) {
-        uint8_t value = 0U;
-        if (!eeprom_repository_->read_uint8(i, value)) {
-            return false;
-        }
-        out_phone_number[out_index++] = static_cast<char>(value);
-    }
-    out_phone_number[out_index] = '\0';
-    return true;
+	for (uint8_t i = 0U; i < APP_PHONE_LOCAL_NUMBER_LENGTH; ++i) {
+		uint8_t value = 0U;
+		if (!eeprom_repository_->read_uint8(i, value)) {
+			return false;
+		}
+		out_phone_number[out_index++] = static_cast<char>(value);
+	}
+	out_phone_number[out_index] = '\0';
+	return true;
 }
 bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_repository, const char* phone_local_number) {
-    if (phone_local_number == nullptr) {
-        return false;
-    }
+	if (phone_local_number == nullptr) {
+		return false;
+	}
 
-    if (phone_local_number[APP_PHONE_LOCAL_NUMBER_LENGTH] != '\0') {
-        return false;
-    }
+	if (phone_local_number[APP_PHONE_LOCAL_NUMBER_LENGTH] != '\0') {
+		return false;
+	}
 
-    for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
-        const char c = phone_local_number[index];
-        if (c < '0' || c > '9') {
-            return false;
-        }
-        if (!eeprom_repository.write_uint8(index, static_cast<uint8_t>(c))) {
-            return false;
-        }
-    }
+	for (uint8_t index = 0U; index < APP_PHONE_LOCAL_NUMBER_LENGTH; ++index) {
+		const char c = phone_local_number[index];
+		if (c < '0' || c > '9') {
+			return false;
+		}
+		if (!eeprom_repository.write_uint8(index, static_cast<uint8_t>(c))) {
+			return false;
+		}
+	}
 
-    return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
+	return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
-bool GpsSystem_BL::get_if_call_disabled()  {
-    return is_call_disabled;
+bool GpsSystem_BL::get_if_call_disabled() {
+	return is_call_disabled;
 }
 bool GpsSystem_BL::get_if_gps_flow_enabled() {
-    return is_gps_flow_enabled;
+	return is_gps_flow_enabled;
 }
 bool GpsSystem_BL::get_if_sleep_mode_requested() {
-    return is_sleep_mode_requested;
+	return is_sleep_mode_requested;
 }
 void GpsSystem_BL::clear_sleep_mode_requested() {
-    is_sleep_mode_requested = false;
+	is_sleep_mode_requested = false;
+}
+bool GpsSystem_BL::get_if_wake_mode_requested() {
+	return is_wake_mode_requested;
+}
+void GpsSystem_BL::set_wake_mode_requested() {
+	is_wake_mode_requested = true;
+}
+void GpsSystem_BL::clear_wake_mode_requested() {
+	is_wake_mode_requested = false;
 }
 bool GpsSystem_BL::get_if_tilt_lock_requested() {
-    return is_tilt_lock_requested;
+	return is_tilt_lock_requested;
 }
 uint16_t GpsSystem_BL::get_tilt_lock_minutes() {
-    return tilt_lock_minutes;
+	return tilt_lock_minutes;
 }
 void GpsSystem_BL::clear_tilt_lock_requested() {
-    is_tilt_lock_requested = false;
-    tilt_lock_minutes = 0U;
+	is_tilt_lock_requested = false;
+	tilt_lock_minutes = 0U;
 }

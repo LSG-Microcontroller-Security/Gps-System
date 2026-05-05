@@ -37,6 +37,9 @@ public:
     static bool get_if_gps_flow_enabled();
     static bool get_if_sleep_mode_requested();
     static void clear_sleep_mode_requested();
+    static bool get_if_wake_mode_requested();
+    static void set_wake_mode_requested();
+    static void clear_wake_mode_requested();
     static bool get_if_tilt_lock_requested();
     static uint16_t get_tilt_lock_minutes();
     static void clear_tilt_lock_requested();
@@ -49,6 +52,7 @@ private:
     static bool is_call_disabled;
     static bool is_gps_flow_enabled;
     static bool is_sleep_mode_requested;
+    static bool is_wake_mode_requested;
     static bool is_tilt_lock_requested;
     static uint16_t tilt_lock_minutes;
     NmeaGpsActivity* gps_activity_;
