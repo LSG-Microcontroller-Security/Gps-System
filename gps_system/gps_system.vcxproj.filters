@@ -80,8 +80,5 @@
     <ClInclude Include="src\mf_repository_EepromRepository.h">
       <Filter>repository</Filter>
     </ClInclude>
-    <ClInclude Include="src\SoftwareSerial.h">
-      <Filter>repository</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
