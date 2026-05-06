@@ -5,7 +5,7 @@
  Author:    luigi
 */
 #include <Arduino.h>
-#include "SoftwareSerial.h"
+#include "src/SoftwareSerial.h"
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <avr/sleep.h>
