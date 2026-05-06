@@ -80,9 +80,6 @@
     <ClInclude Include="src\mf_repository_EepromRepository.h">
       <Filter>repository</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_AvrMicroRepository.h">
-      <Filter>repository</Filter>
-    </ClInclude>
     <ClInclude Include="src\SoftwareSerial.h">
       <Filter>repository</Filter>
     </ClInclude>

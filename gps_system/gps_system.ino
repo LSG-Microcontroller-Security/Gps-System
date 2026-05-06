@@ -201,7 +201,7 @@ void turnOffSimLed() {
 }
 
 void make_alarm_call() {
-	if (GpsSystem_BL::get_if_interrupt_call_disabled()) return;
+	if (!GpsSystem_BL::get_if_interrupt_call_enabled()) return;
 
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
@@ -252,7 +252,7 @@ void run_sim_flow() {
 	}
 
 	// L'interrupt INT0 resta attivo solo quando le chiamate da interrupt sono abilitate.
-	if (GpsSystem_BL::get_if_interrupt_call_disabled()) {
+	if (!GpsSystem_BL::get_if_interrupt_call_enabled()) {
 		if (interrupt_call_attach_state) {
 			detachInterrupt(digitalPinToInterrupt(interrupt_pin));
 			interrupt_call_attach_state = false;
@@ -264,11 +264,11 @@ void run_sim_flow() {
 		interrupt_call_attach_state = true;
 	}
 
-	if (GpsSystem_BL::get_if_sleep_mode_requested()) {
+	if (GpsSystem_BL::get_if_sleep_mode_enabled()) {
 		system_awake_latch_state = false;
 		watchdog_poll_elapsed_ticks = 0U;
 		digitalWrite(gps_power_pin, LOW);
-		GpsSystem_BL::clear_sleep_mode_requested();
+		GpsSystem_BL::disable_sleep_mode();
 	}
 
 	if (GpsSystem_BL::get_if_gps_flow_enabled()) {

@@ -5,9 +5,9 @@
 #include <string.h>
 #include <Arduino.h>
 
-bool GpsSystem_BL::is_interrupt_call_disabled = false;
+bool GpsSystem_BL::is_interrupt_call_enabled = true;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
-bool GpsSystem_BL::is_sleep_mode_requested = false;
+bool GpsSystem_BL::is_sleep_mode_enabled = false;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -107,17 +107,23 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case '*': {
-		is_sleep_mode_requested = true;
-		is_interrupt_call_disabled = true;
+		is_sleep_mode_enabled = true;
+		is_interrupt_call_enabled = false;
+		is_gps_flow_enabled = false;
+		break;
+	}
+	case '%': {
+		is_interrupt_call_enabled = true;
+		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
 		break;
 	}
 
 	default: {
 		if (!is_gps_flow_enabled) {
-			is_interrupt_call_disabled = true;
+			is_interrupt_call_enabled = false;
 			is_gps_flow_enabled = true;
-			is_sleep_mode_requested = false;
+			is_sleep_mode_enabled = false;
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("call disabled + gps flow enabled"));
 #endif
@@ -193,15 +199,15 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
 
 	return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
-bool GpsSystem_BL::get_if_interrupt_call_disabled() {
-	return is_interrupt_call_disabled;
+bool GpsSystem_BL::get_if_interrupt_call_enabled() {
+	return is_interrupt_call_enabled;
 }
 bool GpsSystem_BL::get_if_gps_flow_enabled() {
 	return is_gps_flow_enabled;
 }
-bool GpsSystem_BL::get_if_sleep_mode_requested() {
-	return is_sleep_mode_requested;
+bool GpsSystem_BL::get_if_sleep_mode_enabled() {
+	return is_sleep_mode_enabled;
 }
-void GpsSystem_BL::clear_sleep_mode_requested() {
-	is_sleep_mode_requested = false;
+void GpsSystem_BL::disable_sleep_mode() {
+	is_sleep_mode_enabled = false;
 }
