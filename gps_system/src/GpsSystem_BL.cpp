@@ -82,14 +82,13 @@ bool GpsSystem_BL::read_sms(char* out_message, uint8_t out_message_size) {
 	}
 
 	out_message[out_message_size - 1U] = '\0';
-	(void)sim_repository_->deleteSmsAt(1U);
+	sim_repository_->deleteAllSms();
 	return true;
 }
 void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status) {
 	if (message == nullptr || message[0] == '\0') {
 		return;
 	}
-
 	switch (message[0]) {
 	case '#': {
 		const char* phone_number = message + 1;
@@ -106,20 +105,19 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 
 		break;
 	}
-	case '*': {
+	case 'D':{
 		is_sleep_mode_enabled = true;
 		is_interrupt_call_enabled = false;
 		is_gps_flow_enabled = false;
 		break;
 	}
-	case '%': {
+	case 'A':{
 		is_interrupt_call_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
 		break;
 	}
-
-	default: {
+	case 'Q': {
 		if (!is_gps_flow_enabled) {
 			is_interrupt_call_enabled = false;
 			is_gps_flow_enabled = true;
@@ -129,7 +127,9 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 #endif
 			break;
 		}
-
+		if (!gps_status.has_position) {
+			break;
+		}
 		const GpsSmsData gps_sms_data = {
 			gps_status.latitude_x1000000,
 			gps_status.longitude_x1000000,
