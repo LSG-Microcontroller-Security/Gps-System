@@ -11,11 +11,11 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "AppConfig.h"
-#include <mf_adapter_SoftwareSerialAdapter.h>
-#include "src/mf_repository_EepromRepository.h"
-#include "src/mf_repository_NmeaGpsRepository.h"
-#include "src/mf_repository_SimRepository.h"
-#include "src/mf_activity_NmeaGpsActivity.h"
+#include "mf_adapter_SoftwareSerialAdapter.h"
+#include "mf_repository_EepromRepository.h"
+#include "mf_repository_NmeaGpsRepository.h"
+#include "mf_repository_SimRepository.h"
+#include "mf_activity_NmeaGpsActivity.h"
 //#include <mf_repository_AvrMicroRepository.h>
 #include "src/GpsSystem_BL.h"
 

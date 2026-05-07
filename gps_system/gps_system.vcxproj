@@ -85,10 +85,6 @@
       <DeploymentContent>true</DeploymentContent>
     </ClCompile>
     <ClCompile Include="src\GpsSystem_BL.cpp" />
-    <ClCompile Include="src\mf_activity_NmeaGpsActivity.cpp" />
-    <ClCompile Include="src\mf_repository_EepromRepository.cpp" />
-    <ClCompile Include="src\mf_repository_NmeaGpsRepository.cpp" />
-    <ClCompile Include="src\mf_repository_SimRepository.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
@@ -102,10 +98,6 @@
     <ClInclude Include="AppConfig.h" />
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h" />
     <ClInclude Include="src\GpsSystem_BL.h" />
-    <ClInclude Include="src\mf_activity_NmeaGpsActivity.h" />
-    <ClInclude Include="src\mf_repository_EepromRepository.h" />
-    <ClInclude Include="src\mf_repository_NmeaGpsRepository.h" />
-    <ClInclude Include="src\mf_repository_SimRepository.h" />
     <ClInclude Include="__vm\.gps_system.vsarduino.h" />
   </ItemGroup>
   <PropertyGroup>

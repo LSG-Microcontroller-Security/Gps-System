@@ -39,46 +39,22 @@
     <ClCompile Include="gps_system.ino">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\mf_activity_NmeaGpsActivity.cpp">
-      <Filter>activity</Filter>
-    </ClCompile>
     <ClCompile Include="src\GpsSystem_BL.cpp">
       <Filter>business</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mf_repository_NmeaGpsRepository.cpp">
-      <Filter>repository</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mf_repository_SimRepository.cpp">
-      <Filter>repository</Filter>
-    </ClCompile>
-    <ClCompile Include="src\mf_repository_EepromRepository.cpp">
-      <Filter>repository</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.gps_system.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\mf_activity_NmeaGpsActivity.h">
-      <Filter>activity</Filter>
-    </ClInclude>
     <ClInclude Include="src\GpsSystem_BL.h">
       <Filter>business</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mf_repository_NmeaGpsRepository.h">
-      <Filter>repository</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mf_repository_SimRepository.h">
-      <Filter>repository</Filter>
     </ClInclude>
     <ClInclude Include="AppConfig.h">
       <Filter>config</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h">
       <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="src\mf_repository_EepromRepository.h">
-      <Filter>repository</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
