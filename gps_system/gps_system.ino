@@ -18,27 +18,12 @@
 #include "mf_activity_NmeaGpsActivity.h"
 //#include <mf_repository_AvrMicroRepository.h>
 #include "src/GpsSystem_BL.h"
-
 extern unsigned int __heap_start;
 extern void* __brkval;
-
-int freeMemory() {
-	int free_memory;
-	if (__brkval == 0) {
-		free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(&__heap_start);
-	}
-	else {
-		free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(__brkval);
-	}
-	return free_memory;
-}
-
 GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
-
 constexpr uint8_t interrupt_pin = 2U; // INT0 on ATmega328P (Nano D2)
 constexpr uint8_t gps_power_pin = 12U;
-
 // Watchdog timing
 constexpr uint8_t watchdog_poll_interval_ticks = 8U; // 8 * 8s = circa 64s
 
@@ -56,6 +41,16 @@ ISR(WDT_vect) {
 	watchdog_wake_state = true;
 }
 
+int freeMemory() {
+	int free_memory;
+	if (__brkval == 0) {
+		free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(&__heap_start);
+	}
+	else {
+		free_memory = reinterpret_cast<int>(&free_memory) - reinterpret_cast<int>(__brkval);
+	}
+	return free_memory;
+}
 void setup() {
 	Serial.begin(115200);
 	delay(100);
@@ -77,7 +72,6 @@ void setup() {
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
 }
-
 void loop() {
 	if (!system_awake_latch_state) {
 		watchdog_wake_state = false;
@@ -136,21 +130,17 @@ void loop() {
 
 	delay(1000);
 }
-
 void on_int0_wake() {
 	interrupt_0_wake_state = true;
 }
-
 void configure_watchdog_8s_interrupt() {
 	MCUSR &= static_cast<uint8_t>(~_BV(WDRF));
 	WDTCSR = static_cast<uint8_t>(_BV(WDCE) | _BV(WDE));
 	WDTCSR = static_cast<uint8_t>(_BV(WDIE) | _BV(WDP3) | _BV(WDP0)); // ~8s interrupt only
 }
-
 void disable_watchdog() {
 	wdt_disable();
 }
-
 void enter_deep_sleep() {
 	ADCSRA &= static_cast<uint8_t>(~_BV(ADEN));
 	power_adc_disable();
@@ -176,21 +166,18 @@ void enter_deep_sleep() {
 	power_adc_enable();
 	ADCSRA |= _BV(ADEN);
 }
-
 void sim_800c_enter_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.enterSleepMode();
 }
-
 void sim_800c_exit_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
-
 void turnOffSimLed() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
@@ -199,7 +186,6 @@ void turnOffSimLed() {
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 	sim_bl.set_sim_netlight_enabled(false);
 }
-
 void make_alarm_call() {
 	if (!GpsSystem_BL::get_if_interrupt_call_enabled()) return;
 
@@ -212,7 +198,6 @@ void make_alarm_call() {
 	sim_bl.load_phone_number_from_eeprom_with_prefix(number);
 	sim800c_repository.call(number);
 }
-
 void run_gps_flow() {
 	if (!GpsSystem_BL::get_if_gps_flow_enabled()) {
 		digitalWrite(gps_power_pin, LOW);
@@ -229,7 +214,6 @@ void run_gps_flow() {
 
 	gps_bl.read_and_log_coordinates(gps_connection_status);
 }
-
 void run_sim_flow() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
