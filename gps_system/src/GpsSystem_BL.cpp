@@ -109,12 +109,14 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_sleep_mode_enabled = true;
 		is_interrupt_call_enabled = false;
 		is_gps_flow_enabled = false;
+		this->call_phone_number();
 		break;
 	}
 	case 'A':{
 		is_interrupt_call_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
+		this->call_phone_number();
 		break;
 	}
 	case 'Q': {
@@ -122,6 +124,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 			is_interrupt_call_enabled = false;
 			is_gps_flow_enabled = true;
 			is_sleep_mode_enabled = false;
+			this->call_phone_number();
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("call disabled + gps flow enabled"));
 #endif

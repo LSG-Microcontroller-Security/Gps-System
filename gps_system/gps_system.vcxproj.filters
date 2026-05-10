@@ -25,9 +25,6 @@
     <Filter Include="config">
       <UniqueIdentifier>{bce75594-aea1-4efc-8115-c602df2227c2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="common">
-      <UniqueIdentifier>{d48f0873-2ab5-4176-ab2d-9127287b58f6}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\arduino folders read me.txt">
@@ -52,9 +49,6 @@
     </ClInclude>
     <ClInclude Include="AppConfig.h">
       <Filter>config</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h">
-      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

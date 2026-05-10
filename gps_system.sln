@@ -14,6 +14,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ext_roles_for_codex", "ext_
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "framework", "framework", "{6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "commons", "commons", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repository", "repository", "{867E6D12-78CD-467A-99CB-547E8B19D12E}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -68,6 +79,8 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5B694DD5-AE59-4264-BF36-5ECBA78E6F59} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
+		{867E6D12-78CD-467A-99CB-547E8B19D12E} = {6D31B2AC-9C6D-4EBC-8C2F-997CA6A8AB91}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5784AB65-4835-46DB-BB0A-383BC18AF187}

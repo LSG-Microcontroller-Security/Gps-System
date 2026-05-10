@@ -16,14 +16,12 @@
 #include "mf_repository_NmeaGpsRepository.h"
 #include "mf_repository_SimRepository.h"
 #include "mf_activity_NmeaGpsActivity.h"
-//#include <mf_repository_AvrMicroRepository.h>
+#include "mf_commons_commonsLayer.h"
 #include "src/GpsSystem_BL.h"
 extern unsigned int __heap_start;
 extern void* __brkval;
 GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
-constexpr uint8_t interrupt_pin = 2U; // INT0 on ATmega328P (Nano D2)
-constexpr uint8_t gps_power_pin = 12U;
 // Watchdog timing
 constexpr uint8_t watchdog_poll_interval_ticks = 8U; // 8 * 8s = circa 64s
 
@@ -52,22 +50,18 @@ int freeMemory() {
 	return free_memory;
 }
 void setup() {
-	Serial.begin(115200);
-	delay(100);
-
+	Serial.begin(9600);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("start"));
 #endif
+	pinMode(APP_INTERRUPT_PIN, INPUT_PULLUP);
+	pinMode(APP_GPS_POWER_PIN, OUTPUT);
 
-	//delay(10000);
-
-	pinMode(interrupt_pin, INPUT_PULLUP);
-	pinMode(gps_power_pin, OUTPUT);
-
-	digitalWrite(gps_power_pin, LOW);
+	digitalWrite(APP_GPS_POWER_PIN, LOW);
 	delay(100);
-	attachInterrupt(digitalPinToInterrupt(interrupt_pin), on_int0_wake, FALLING);
-	turnOffSimLed();
+	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
+
+
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
@@ -75,7 +69,7 @@ void setup() {
 void loop() {
 	if (!system_awake_latch_state) {
 		watchdog_wake_state = false;
-		digitalWrite(gps_power_pin, LOW);
+		digitalWrite(APP_GPS_POWER_PIN, LOW);
 		if (!sim800c_sleep_state) {
 			sim_800c_enter_sleep_mode();
 			sim800c_sleep_state = true;
@@ -124,9 +118,10 @@ void loop() {
 			watchdog_poll_elapsed_ticks = 0U;
 		}
 	}
-
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.print(F("Free RAM after SIM: "));
 	Serial.println(freeMemory());
+#endif
 
 	delay(1000);
 }
@@ -169,19 +164,19 @@ void enter_deep_sleep() {
 void sim_800c_enter_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.enterSleepMode();
 }
 void sim_800c_exit_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
 void turnOffSimLed() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 	sim_bl.set_sim_netlight_enabled(false);
@@ -191,7 +186,7 @@ void make_alarm_call() {
 
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
@@ -200,34 +195,32 @@ void make_alarm_call() {
 }
 void run_gps_flow() {
 	if (!GpsSystem_BL::get_if_gps_flow_enabled()) {
-		digitalWrite(gps_power_pin, LOW);
+		digitalWrite(APP_GPS_POWER_PIN, LOW);
 		return;
 	}
-
-	digitalWrite(gps_power_pin, HIGH);
-
+	digitalWrite(APP_GPS_POWER_PIN, HIGH);
 	SoftwareSerial gps_software_serial(APP_GPS_SW_SERIAL_RX_PIN, APP_GPS_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter gps_software_serial_adapter(gps_software_serial);
 	NmeaGpsRepository nmea_gps_repository(gps_software_serial_adapter);
 	NmeaGpsActivity nmea_gps_activity(nmea_gps_repository);
 	GpsSystem_BL gps_bl(&nmea_gps_activity);
-
 	gps_bl.read_and_log_coordinates(gps_connection_status);
 }
 void run_sim_flow() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, 10, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 
 	if (is_first_sim_flow_run) {
 		sim_bl.delete_all_sms();
 		sim_bl.startSmsReception();
+		make_alarm_call();
 		is_first_sim_flow_run = false;
 	}
 
-	char message_buffer[5];
+	char message_buffer[APP_PHONE_LOCAL_NUMBER_LENGTH + 2U];
 
 	if (sim_bl.check_if_sms_arrived()) {
 		if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
@@ -238,20 +231,20 @@ void run_sim_flow() {
 	// L'interrupt INT0 resta attivo solo quando le chiamate da interrupt sono abilitate.
 	if (!GpsSystem_BL::get_if_interrupt_call_enabled()) {
 		if (interrupt_call_attach_state) {
-			detachInterrupt(digitalPinToInterrupt(interrupt_pin));
+			detachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN));
 			interrupt_call_attach_state = false;
 			interrupt_0_wake_state = false;
 		}
 	}
 	else if (!interrupt_call_attach_state) {
-		attachInterrupt(digitalPinToInterrupt(interrupt_pin), on_int0_wake, FALLING);
+		attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
 		interrupt_call_attach_state = true;
 	}
 
 	if (GpsSystem_BL::get_if_sleep_mode_enabled()) {
 		system_awake_latch_state = false;
 		watchdog_poll_elapsed_ticks = 0U;
-		digitalWrite(gps_power_pin, LOW);
+		digitalWrite(APP_GPS_POWER_PIN, LOW);
 		GpsSystem_BL::disable_sleep_mode();
 	}
 
