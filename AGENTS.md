@@ -251,6 +251,14 @@
 ## Naming
 
 - Variabili, parametri e funzioni nuove in `snake_case`.
+- Preferire nomi parlanti e completi; evitare abbreviazioni opache o troppo sintetiche come `sim_bl`, `gps_bl`, `tmp`, `cfg` quando il significato reale puo' essere espresso chiaramente.
+- I nomi locali devono restare comprensibili anche dopo mesi senza contesto esterno; il criterio e' leggibilita' futura, non risparmio di caratteri.
+- Le abbreviazioni sono ammesse solo se standard, non ambigue e riconoscibili in modo immediato nel dominio tecnico del componente.
+- Se un nome richiede spiegazioni a voce per essere capito, il nome non e' adeguato e va reso piu' esplicito.
+- Evitare sigle di 2-4 caratteri per oggetti applicativi o di dominio quando esiste un nome completo chiaro.
+- Nelle business logic e nelle activity, i nomi delle dipendenze devono riflettere esplicitamente il ruolo (`sim_repository`, `eeprom_repository`, `gps_activity`), non il solo tipo.
+- Durante i refactor di naming, privilegiare cambi atomici e coerenti nello stesso file o blocco funzionale, evitando mix temporanei tra naming vecchio e nuovo.
+- Prima di chiudere una modifica, rileggere i nomi nuovi chiedendosi se un lettore che apre il file tra 6 mesi capisce il significato senza contesto extra.
 - I nomi delle cartelle virtuali e dei folder vanno scritti in minuscolo.
 - I nomi dei metodi devono descrivere chiaramente il loro effetto o il loro valore di ritorno.
 - Se un metodo ritorna `bool`, il nome deve leggere come una domanda o un predicato coerente con il risultato restituito.

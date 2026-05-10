@@ -24,7 +24,6 @@ GpsConnectionStatus gps_connection_status = {};
 bool is_first_sim_flow_run = true;
 // Watchdog timing
 constexpr uint8_t watchdog_poll_interval_ticks = 8U; // 8 * 8s = circa 64s
-
 volatile bool interrupt_0_wake_state = false;
 volatile bool watchdog_wake_state = false;
 
@@ -50,18 +49,18 @@ int freeMemory() {
 	return free_memory;
 }
 void setup() {
-	Serial.begin(9600);
+	Serial.begin(19200);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("start"));
 #endif
 	pinMode(APP_INTERRUPT_PIN, INPUT_PULLUP);
 	pinMode(APP_GPS_POWER_PIN, OUTPUT);
-
 	digitalWrite(APP_GPS_POWER_PIN, LOW);
-	delay(100);
+	pinMode(APP_SIM_POWER_PIN, OUTPUT);
+	digitalWrite(APP_SIM_POWER_PIN, LOW);
+	delay(5000);
 	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
-
-
+	turnOffSimLed();
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
@@ -165,7 +164,7 @@ void sim_800c_enter_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
-	sim800c_repository.enterSleepMode();
+	(void)sim800c_repository.enterSleepMode();
 }
 void sim_800c_exit_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
@@ -173,13 +172,18 @@ void sim_800c_exit_sleep_mode() {
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
+
 void turnOffSimLed() {
+	digitalWrite(APP_SIM_POWER_PIN, LOW);
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
-	EepromRepository eeprom_repository;
-	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
-	sim_bl.set_sim_netlight_enabled(false);
+	for (uint8_t attempt = 0U; attempt < 3U; ++attempt) {
+		if (sim800c_repository.setNetlightEnabled(false)) {
+			break;
+		}
+		delay(400);
+	}
 }
 void make_alarm_call() {
 	if (!GpsSystem_BL::get_if_interrupt_call_enabled()) return;
@@ -216,7 +220,9 @@ void run_sim_flow() {
 	if (is_first_sim_flow_run) {
 		sim_bl.delete_all_sms();
 		sim_bl.startSmsReception();
-		make_alarm_call();
+		if (GpsSystem_BL::get_if_interrupt_call_enabled()) {
+			sim_bl.call_phone_number();
+		}
 		is_first_sim_flow_run = false;
 	}
 

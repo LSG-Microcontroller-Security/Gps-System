@@ -153,9 +153,10 @@ void GpsSystem_BL::hang_up_phone_call() {
 	this->sim_repository_->listen();
 	this->sim_repository_->hangUp();
 }
-void GpsSystem_BL::set_sim_netlight_enabled(bool enabled) {
+bool GpsSystem_BL::set_sim_netlight_enabled(bool enabled) {
 	this->sim_repository_->listen();
-	(void)this->sim_repository_->setNetlightEnabled(enabled);
+	delay(5000);
+	return this->sim_repository_->setNetlightEnabled(enabled);
 }
 void GpsSystem_BL::delete_all_sms() {
 	this->sim_repository_->listen();
