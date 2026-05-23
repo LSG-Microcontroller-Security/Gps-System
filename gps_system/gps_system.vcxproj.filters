@@ -25,12 +25,18 @@
     <Filter Include="config">
       <UniqueIdentifier>{bce75594-aea1-4efc-8115-c602df2227c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="circuits">
+      <UniqueIdentifier>{cb13ee49-73c3-44df-ac6f-df74b6428b16}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\arduino folders read me.txt">
       <Filter>Misc Files</Filter>
     </None>
     <None Include="ClassDiagram.cd" />
+    <None Include="..\eagle cad\baseBoard2.brd">
+      <Filter>circuits</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gps_system.ino">

@@ -56,8 +56,8 @@ void setup() {
 	pinMode(APP_INTERRUPT_PIN, INPUT_PULLUP);
 	pinMode(APP_GPS_POWER_PIN, OUTPUT);
 	digitalWrite(APP_GPS_POWER_PIN, LOW);
-	pinMode(APP_SIM_POWER_PIN, OUTPUT);
-	digitalWrite(APP_SIM_POWER_PIN, LOW);
+	pinMode(APP_SIM_SLEEP_PIN, OUTPUT);
+	digitalWrite(APP_SIM_SLEEP_PIN, LOW);
 	delay(5000);
 	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
 	turnOffSimLed();
@@ -163,21 +163,21 @@ void enter_deep_sleep() {
 void sim_800c_enter_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	(void)sim800c_repository.enterSleepMode();
 }
 void sim_800c_exit_sleep_mode() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
 
 void turnOffSimLed() {
-	digitalWrite(APP_SIM_POWER_PIN, LOW);
+	digitalWrite(APP_SIM_SLEEP_PIN, LOW);
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	for (uint8_t attempt = 0U; attempt < 3U; ++attempt) {
 		if (sim800c_repository.setNetlightEnabled(false)) {
 			break;
@@ -190,7 +190,7 @@ void make_alarm_call() {
 
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
@@ -213,7 +213,7 @@ void run_gps_flow() {
 void run_sim_flow() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
-	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_POWER_PIN, APP_SIM_SERIAL_BAUD_RATE);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
 
