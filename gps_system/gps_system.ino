@@ -230,6 +230,10 @@ void run_sim_flow() {
 
 	if (sim_bl.check_if_sms_arrived()) {
 		if (sim_bl.read_sms(message_buffer, sizeof(message_buffer))) {
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+			Serial.print(F("sms ricevuto: "));
+			Serial.println(message_buffer);
+#endif
 			sim_bl.analyze_sms_message(message_buffer, gps_connection_status);
 		}
 	}
