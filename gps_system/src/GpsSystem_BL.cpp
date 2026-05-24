@@ -8,7 +8,7 @@
 bool GpsSystem_BL::is_interrupt_enabled = true;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_enabled = false;
-bool GpsSystem_BL::is_sim_module_total_power_off_enabled = false;
+bool GpsSystem_BL::is_sim_power_off_enabled = false;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -112,7 +112,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_sleep_mode_enabled = true;
 		is_interrupt_enabled = false;
 		is_gps_flow_enabled = false;
-		is_sim_module_total_power_off_enabled = false;
+		is_sim_power_off_enabled = false;
 		this->call_phone_number();
 		break;
 	}
@@ -120,7 +120,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
-		is_sim_module_total_power_off_enabled = false;
+		is_sim_power_off_enabled = false;
 		this->call_phone_number();
 		break;
 	}
@@ -128,7 +128,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
-		is_sim_module_total_power_off_enabled = true;
+		is_sim_power_off_enabled = true;
 		this->call_phone_number();
 		this->sim_repository_->delay(2000UL);
 		(void)this->sim_repository_->turn_off_module();
@@ -139,7 +139,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 			is_interrupt_enabled = false;
 			is_gps_flow_enabled = true;
 			is_sleep_mode_enabled = false;
-			is_sim_module_total_power_off_enabled = false;
+			is_sim_power_off_enabled = false;
 			this->call_phone_number();
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("call disabled + gps flow enabled"));
@@ -228,8 +228,8 @@ bool GpsSystem_BL::get_if_gps_flow_enabled() {
 bool GpsSystem_BL::get_if_sleep_mode_enabled() {
 	return is_sleep_mode_enabled;
 }
-bool GpsSystem_BL::get_if_sim_module_total_power_off_enabled() {
-	return is_sim_module_total_power_off_enabled;
+bool GpsSystem_BL::get_if_sim_power_off_enabled() {
+	return is_sim_power_off_enabled;
 }
 void GpsSystem_BL::disable_sleep_mode() {
 	is_sleep_mode_enabled = false;

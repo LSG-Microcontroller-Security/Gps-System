@@ -36,7 +36,7 @@ public:
     static bool get_if_interrupt_enabled();
     static bool get_if_gps_flow_enabled();
     static bool get_if_sleep_mode_enabled();
-    static bool get_if_sim_module_total_power_off_enabled();
+    static bool get_if_sim_power_off_enabled();
     static void disable_sleep_mode();
     static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
@@ -47,7 +47,7 @@ private:
     static bool is_interrupt_enabled;
     static bool is_gps_flow_enabled;
     static bool is_sleep_mode_enabled;
-    static bool is_sim_module_total_power_off_enabled;
+    static bool is_sim_power_off_enabled;
     NmeaGpsActivity* gps_activity_;
     SimRepository* sim_repository_;
     EepromRepository* eeprom_repository_;
