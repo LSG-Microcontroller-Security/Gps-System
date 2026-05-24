@@ -5,9 +5,10 @@
 #include <string.h>
 #include <Arduino.h>
 
-bool GpsSystem_BL::is_interrupt_call_enabled = true;
+bool GpsSystem_BL::is_interrupt_enabled = true;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
 bool GpsSystem_BL::is_sleep_mode_enabled = false;
+bool GpsSystem_BL::is_sim_module_total_power_off_enabled = false;
 
 GpsSystem_BL::GpsSystem_BL(NmeaGpsActivity* gps_activity)
 	: gps_activity_(gps_activity),
@@ -35,6 +36,7 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	return true;
 }
 void GpsSystem_BL::call_phone_number() {
+#if APP_SIM_ENABLE_PHONE_CALLS
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
 	load_phone_number_from_eeprom_with_prefix(number);
 
@@ -44,6 +46,7 @@ void GpsSystem_BL::call_phone_number() {
 #endif
 	sim_repository_->listen();
 	sim_repository_->call(number);
+#endif
 }
 void GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
@@ -107,23 +110,36 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	}
 	case 'D':{
 		is_sleep_mode_enabled = true;
-		is_interrupt_call_enabled = false;
+		is_interrupt_enabled = false;
 		is_gps_flow_enabled = false;
+		is_sim_module_total_power_off_enabled = false;
 		this->call_phone_number();
 		break;
 	}
 	case 'A':{
-		is_interrupt_call_enabled = true;
+		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
+		is_sim_module_total_power_off_enabled = false;
 		this->call_phone_number();
+		break;
+	}
+	case 'S':{
+		is_interrupt_enabled = true;
+		is_sleep_mode_enabled = true;
+		is_gps_flow_enabled = false;
+		is_sim_module_total_power_off_enabled = true;
+		this->call_phone_number();
+		this->sim_repository_->delay(2000UL);
+		(void)this->sim_repository_->turn_off_module();
 		break;
 	}
 	case 'Q': {
 		if (!is_gps_flow_enabled) {
-			is_interrupt_call_enabled = false;
+			is_interrupt_enabled = false;
 			is_gps_flow_enabled = true;
 			is_sleep_mode_enabled = false;
+			is_sim_module_total_power_off_enabled = false;
 			this->call_phone_number();
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("call disabled + gps flow enabled"));
@@ -203,14 +219,17 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
 
 	return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
-bool GpsSystem_BL::get_if_interrupt_call_enabled() {
-	return is_interrupt_call_enabled;
+bool GpsSystem_BL::get_if_interrupt_enabled() {
+	return is_interrupt_enabled;
 }
 bool GpsSystem_BL::get_if_gps_flow_enabled() {
 	return is_gps_flow_enabled;
 }
 bool GpsSystem_BL::get_if_sleep_mode_enabled() {
 	return is_sleep_mode_enabled;
+}
+bool GpsSystem_BL::get_if_sim_module_total_power_off_enabled() {
+	return is_sim_module_total_power_off_enabled;
 }
 void GpsSystem_BL::disable_sleep_mode() {
 	is_sleep_mode_enabled = false;

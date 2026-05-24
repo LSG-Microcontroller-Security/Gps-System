@@ -262,6 +262,7 @@
 - I nomi delle cartelle virtuali e dei folder vanno scritti in minuscolo.
 - I nomi dei metodi devono descrivere chiaramente il loro effetto o il loro valore di ritorno.
 - Se un metodo ritorna `bool`, il nome deve leggere come una domanda o un predicato coerente con il risultato restituito.
+- Per variabili booleane di stato usare il prefisso `is_` (esempio: `is_sim800c_in_sleep_mode`).
 - Per i booleani di stato su interrupt, sleep e GPS usare naming positivo orientato a `..._enabled`; evitare forme negative come `..._disabled`.
 - Evitare nomi come `read...` o `calculate...` quando il metodo ritorna in realta' un esito logico come `is_any_port_out_of_range()`.
 - Se un metodo esegue letture ma ritorna un booleano di stato finale, il nome deve riflettere quello stato finale, non l'azione intermedia.
