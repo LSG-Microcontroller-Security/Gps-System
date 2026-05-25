@@ -131,7 +131,11 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_sim_power_off_enabled = true;
 		this->call_phone_number();
 		this->sim_repository_->delay(20000UL);
-		const bool is_module_powered_off = this->sim_repository_->turn_off_module();
+		bool is_module_powered_off = this->sim_repository_->turn_off_module();
+		if (!is_module_powered_off) {
+			this->sim_repository_->delay(1200UL);
+			is_module_powered_off = this->sim_repository_->turn_off_module();
+		}
 		is_sim_power_off_enabled = is_module_powered_off;
 		break;
 	}

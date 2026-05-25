@@ -29,12 +29,15 @@ volatile bool is_watchdog_triggered = false;
 bool is_required_sleep_mode = true;
 bool is_sim800c_in_sleep_mode = false;
 bool is_interrupt_management_enabled = true;
+bool is_sim_netlight_disable_pending_after_power_on = true;
 // Watchdog counters
 uint8_t watchdog_ticks_accumulator = 0U;
+bool sim_800c_turn_on_module();
 
 ISR(WDT_vect) {
 	is_watchdog_triggered = true;
 }
+#if !_ON_MOCKING_TESTS && _DEBUG_FREE_MEMORY
 int freeMemory() {
 	int free_memory;
 	if (__brkval == 0) {
@@ -45,6 +48,12 @@ int freeMemory() {
 	}
 	return free_memory;
 }
+
+void print_free_memory() {
+	Serial.print(F("Free RAM: "));
+	Serial.println(freeMemory());
+}
+#endif
 void setup() {
 	Serial.begin(9600);
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
@@ -55,13 +64,12 @@ void setup() {
 	digitalWrite(APP_GPS_POWER_PIN, LOW);
 	pinMode(APP_SIM_SLEEP_PIN, OUTPUT);
 	digitalWrite(APP_SIM_SLEEP_PIN, LOW);
-	pinMode(APP_SIM_POWER_PIN, OUTPUT);
+	// Rilascia il PWRKEY: evita una pressione lunga involontaria durante reset/deploy.
+	pinMode(APP_SIM_POWER_PIN, INPUT);
 	digitalWrite(APP_SIM_POWER_PIN, LOW);
 	delay(5000);
 	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
-#if APP_SIM_DISABLE_NETLIGHT_ON_SETUP
-	turnOffSimLed();
-#endif
+	(void)sim_800c_turn_on_module();
 	run_sim_flow();
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
@@ -81,10 +89,18 @@ void loop() {
 		enter_deep_sleep();
 		if (is_interrupt_triggered) {
 			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
-				sim_800c_turn_on_module();
-				GpsSystem_BL::disable_sim_power_off_mode();
-				is_first_sim_flow_run = true;
-				is_sim800c_in_sleep_mode = false;
+				if (sim_800c_turn_on_module()) {
+					GpsSystem_BL::disable_sim_power_off_mode();
+					is_first_sim_flow_run = true;
+					is_sim800c_in_sleep_mode = false;
+					is_sim_netlight_disable_pending_after_power_on = true;
+				}
+				else {
+#if !_ON_MOCKING_TESTS && _DEBUG_FREE_MEMORY
+					print_free_memory();
+#endif
+					return;
+				}
 			}
 			else if (is_sim800c_in_sleep_mode) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
@@ -93,6 +109,9 @@ void loop() {
 				sim_800c_exit_sleep_mode();
 				is_sim800c_in_sleep_mode = false;
 			}
+#if !_ON_MOCKING_TESTS && _DEBUG_FREE_MEMORY
+			print_free_memory();
+#endif
 			watchdog_ticks_accumulator = 0U;
 			is_required_sleep_mode = false;
 		}
@@ -105,6 +124,9 @@ void loop() {
 				return;
 			}
 			watchdog_ticks_accumulator = 0U;
+#if !_ON_MOCKING_TESTS && _DEBUG_FREE_MEMORY
+			print_free_memory();
+#endif
 			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
 				return;
 			}
@@ -136,11 +158,6 @@ void loop() {
 			watchdog_ticks_accumulator = 0U;
 		}
 	}
-#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-	Serial.print(F("Free RAM after SIM: "));
-	Serial.println(freeMemory());
-#endif
-
 	delay(1000);
 }
 void on_int0_wake() {
@@ -190,11 +207,26 @@ void sim_800c_exit_sleep_mode() {
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
-void sim_800c_turn_on_module() {
+bool sim_800c_turn_on_module() {
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE, APP_SIM_POWER_PIN);
-	(void)sim800c_repository.turn_on_module();
+	for (uint8_t probe_attempt = 0U; probe_attempt < 3U; ++probe_attempt) {
+		if (sim800c_repository.is_module_on()) {
+			return true;
+		}
+		sim800c_repository.delay(500UL);
+	}
+	for (uint8_t power_on_attempt = 0U; power_on_attempt < 2U; ++power_on_attempt) {
+		(void)sim800c_repository.turn_on_module();
+		for (uint8_t probe_attempt = 0U; probe_attempt < 4U; ++probe_attempt) {
+			if (sim800c_repository.is_module_on()) {
+				return true;
+			}
+			sim800c_repository.delay(500UL);
+		}
+	}
+	return false;
 }
 void turnOffSimLed() {
 	digitalWrite(APP_SIM_SLEEP_PIN, LOW);
@@ -250,6 +282,12 @@ void run_sim_flow() {
 	}
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("sim network registered"));
+#endif
+#if !APP_SIM_ENABLE_NETLIGHT_ON_SETUP
+	if (is_sim_netlight_disable_pending_after_power_on) {
+		turnOffSimLed();
+		is_sim_netlight_disable_pending_after_power_on = false;
+	}
 #endif
 
 	if (is_first_sim_flow_run) {
