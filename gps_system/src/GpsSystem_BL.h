@@ -38,6 +38,7 @@ public:
     static bool get_if_sleep_mode_enabled();
     static bool get_if_sim_power_off_enabled();
     static void disable_sleep_mode();
+    static void disable_sim_power_off_mode();
     static bool store_phone_local_number_to_eeprom(
         EepromRepository& eeprom_repository,
         const char* phone_local_number);

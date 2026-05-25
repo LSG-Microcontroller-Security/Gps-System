@@ -36,7 +36,6 @@ bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	return true;
 }
 void GpsSystem_BL::call_phone_number() {
-#if APP_SIM_ENABLE_PHONE_CALLS
 	char number[sizeof(APP_PHONE_NUMBER)] = {};
 	load_phone_number_from_eeprom_with_prefix(number);
 
@@ -44,6 +43,7 @@ void GpsSystem_BL::call_phone_number() {
 	Serial.print(F("calling number: "));
 	Serial.println(number);
 #endif
+#if APP_SIM_ENABLE_PHONE_CALLS
 	sim_repository_->listen();
 	sim_repository_->call(number);
 #endif
@@ -130,7 +130,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_gps_flow_enabled = false;
 		is_sim_power_off_enabled = true;
 		this->call_phone_number();
-		this->sim_repository_->delay(2000UL);
+		this->sim_repository_->delay(20000UL);
 		(void)this->sim_repository_->turn_off_module();
 		break;
 	}
@@ -142,7 +142,7 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 			is_sim_power_off_enabled = false;
 			this->call_phone_number();
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
-			Serial.println(F("call disabled + gps flow enabled"));
+			Serial.println(F("alarm disabled(phone call)+ gps flow enabled"));
 #endif
 			break;
 		}
@@ -233,4 +233,7 @@ bool GpsSystem_BL::get_if_sim_power_off_enabled() {
 }
 void GpsSystem_BL::disable_sleep_mode() {
 	is_sleep_mode_enabled = false;
+}
+void GpsSystem_BL::disable_sim_power_off_mode() {
+	is_sim_power_off_enabled = false;
 }

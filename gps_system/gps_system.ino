@@ -26,18 +26,15 @@ bool is_first_sim_flow_run = true;
 constexpr uint8_t watchdog_ticks_intervall = 8U; // 8 * 8s = circa 64s
 volatile bool is_interrupt_triggered = false;
 volatile bool is_watchdog_triggered = false;
-
 bool is_required_sleep_mode = true;
 bool is_sim800c_in_sleep_mode = false;
 bool is_interrupt_management_enabled = true;
-
 // Watchdog counters
 uint8_t watchdog_ticks_accumulator = 0U;
 
 ISR(WDT_vect) {
 	is_watchdog_triggered = true;
 }
-
 int freeMemory() {
 	int free_memory;
 	if (__brkval == 0) {
@@ -65,6 +62,7 @@ void setup() {
 #if APP_SIM_DISABLE_NETLIGHT_ON_SETUP
 	turnOffSimLed();
 #endif
+	run_sim_flow();
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
@@ -82,7 +80,13 @@ void loop() {
 		}
 		enter_deep_sleep();
 		if (is_interrupt_triggered) {
-			if (is_sim800c_in_sleep_mode) {
+			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
+				sim_800c_turn_on_module();
+				GpsSystem_BL::disable_sim_power_off_mode();
+				is_first_sim_flow_run = true;
+				is_sim800c_in_sleep_mode = false;
+			}
+			else if (is_sim800c_in_sleep_mode) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 				Serial.println(F("sim sleep exit"));
 #endif
@@ -101,6 +105,9 @@ void loop() {
 				return;
 			}
 			watchdog_ticks_accumulator = 0U;
+			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
+				return;
+			}
 			if (is_sim800c_in_sleep_mode) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 				Serial.println(F("sim sleep exit"));
@@ -163,7 +170,6 @@ void enter_deep_sleep() {
 	sleep_cpu();
 	sleep_disable();
 	disable_watchdog();
-
 	power_timer0_enable();
 	power_timer1_enable();
 	power_timer2_enable();
@@ -184,6 +190,12 @@ void sim_800c_exit_sleep_mode() {
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
 	sim800c_repository.exitSleepMode();
 }
+void sim_800c_turn_on_module() {
+	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
+	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
+	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE, APP_SIM_POWER_PIN);
+	(void)sim800c_repository.turn_on_module();
+}
 void turnOffSimLed() {
 	digitalWrite(APP_SIM_SLEEP_PIN, LOW);
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
@@ -197,11 +209,9 @@ void turnOffSimLed() {
 	}
 }
 void make_alarm_call() {
-	if (!GpsSystem_BL::get_if_interrupt_enabled()) return;
 #if !APP_SIM_ENABLE_PHONE_CALLS
 	return;
 #endif
-
 	SoftwareSerial sim800c_software_serial(APP_SIM_SW_SERIAL_RX_PIN, APP_SIM_SW_SERIAL_TX_PIN);
 	SoftwareSerialAdapter sim800c_software_serial_adapter(sim800c_software_serial);
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE);
@@ -230,13 +240,24 @@ void run_sim_flow() {
 	SimRepository sim800c_repository(sim800c_software_serial_adapter, APP_SIM_SLEEP_PIN, APP_SIM_SERIAL_BAUD_RATE, APP_SIM_POWER_PIN);
 	EepromRepository eeprom_repository;
 	GpsSystem_BL sim_bl(&sim800c_repository, &eeprom_repository);
+	bool is_network_registered = false;
+	while (!is_network_registered) {
+		sim800c_repository.listen();
+		is_network_registered = sim800c_repository.isRegisteredToNetwork();
+		if (!is_network_registered) {
+			sim800c_repository.delay(1000UL);
+		}
+	}
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+	Serial.println(F("sim network registered"));
+#endif
 
 	if (is_first_sim_flow_run) {
 		sim_bl.delete_all_sms();
 		sim_bl.startSmsReception();
-		if (GpsSystem_BL::get_if_interrupt_enabled()) {
+		// if (GpsSystem_BL::get_if_interrupt_enabled()) {
 			sim_bl.call_phone_number();
-		}
+		// }
 		is_first_sim_flow_run = false;
 	}
 
@@ -252,7 +273,6 @@ void run_sim_flow() {
 		}
 	}
 
-	// L'interrupt INT0 resta attivo solo quando le chiamate da interrupt sono abilitate.
 	if (!GpsSystem_BL::get_if_interrupt_enabled()) {
 		if (is_interrupt_management_enabled) {
 			detachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN));
