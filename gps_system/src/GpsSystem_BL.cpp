@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !_ON_MOCKING_TESTS
 #include <Arduino.h>
+#endif
 
 bool GpsSystem_BL::is_interrupt_enabled = true;
 bool GpsSystem_BL::is_gps_flow_enabled = false;
@@ -176,7 +178,7 @@ void GpsSystem_BL::hang_up_phone_call() {
 }
 bool GpsSystem_BL::set_sim_netlight_enabled(bool enabled) {
 	this->sim_repository_->listen();
-	delay(5000);
+	this->sim_repository_->delay(5000UL);
 	return this->sim_repository_->setNetlightEnabled(enabled);
 }
 void GpsSystem_BL::delete_all_sms() {

@@ -233,6 +233,13 @@
 - Se un repository dedicato espone troppi micro-metodi `virtual`, bisogna rivalutare la sua superficie pubblica e semplificarla.
 - Se un repository base espone molti metodi atomici, questo puo' essere corretto, perche' il suo ruolo e' fornire primitive granulari di basso livello.
 
+## Business Logic E API Arduino
+
+- Regola prioritaria: nella business logic non devono esserci chiamate dirette ad API Arduino come `delay(...)`, `millis()`, `digitalWrite(...)`, `pinMode(...)`, `Serial...` o simili.
+- Qualsiasi operazione hardware, timing o attesa deve passare tramite repository o activity iniettati (ad esempio `sim_repository->delay(...)`).
+- Negli oggetti di business logic evitare include Arduino diretti; se strettamente necessario, devono essere protetti da macro coerenti con il profilo di test/mock.
+- Prima di chiudere una modifica, verificare sempre che nei file di business logic non siano entrate dipendenze Arduino non volute.
+
 ## Memoria E Ottimizzazione Risorse
 
 - In tutto il progetto, considerare sempre il risparmio di memoria come vincolo progettuale di base, sia su SRAM sia su flash.

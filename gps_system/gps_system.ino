@@ -29,10 +29,14 @@ volatile bool is_watchdog_triggered = false;
 bool is_required_sleep_mode = true;
 bool is_sim800c_in_sleep_mode = false;
 bool is_interrupt_management_enabled = true;
+bool is_wake_interrupt_attached = false;
 bool is_sim_netlight_disable_pending_after_power_on = true;
 // Watchdog counters
 uint8_t watchdog_ticks_accumulator = 0U;
 bool sim_800c_turn_on_module();
+void attach_wake_interrupt_if_enabled();
+void detach_wake_interrupt_if_attached();
+void apply_post_sms_runtime_state();
 
 ISR(WDT_vect) {
 	is_watchdog_triggered = true;
@@ -68,9 +72,9 @@ void setup() {
 	pinMode(APP_SIM_POWER_PIN, INPUT);
 	digitalWrite(APP_SIM_POWER_PIN, LOW);
 	delay(5000);
-	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
 	(void)sim_800c_turn_on_module();
 	run_sim_flow();
+	apply_post_sms_runtime_state();
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
@@ -86,7 +90,9 @@ void loop() {
 			sim_800c_enter_sleep_mode();
 			is_sim800c_in_sleep_mode = true;
 		}
+		attach_wake_interrupt_if_enabled();
 		enter_deep_sleep();
+		detach_wake_interrupt_if_attached();
 		if (is_interrupt_triggered) {
 			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
 				if (sim_800c_turn_on_module()) {
@@ -138,13 +144,13 @@ void loop() {
 				is_sim800c_in_sleep_mode = false;
 			}
 			run_sim_flow();
+			apply_post_sms_runtime_state();
 			return;
 		}
 	}
-
 	run_gps_flow();
 	run_sim_flow();
-
+	apply_post_sms_runtime_state();
 	// Prima leggiamo e applichiamo le direttive SMS, poi facciamo l'eventuale chiamata da wake interrupt.
 	if (is_interrupt_triggered) {
 		if (!is_required_sleep_mode) {
@@ -162,6 +168,20 @@ void loop() {
 }
 void on_int0_wake() {
 	is_interrupt_triggered = true;
+}
+void attach_wake_interrupt_if_enabled() {
+	if (!is_interrupt_management_enabled || is_wake_interrupt_attached) {
+		return;
+	}
+	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
+	is_wake_interrupt_attached = true;
+}
+void detach_wake_interrupt_if_attached() {
+	if (!is_wake_interrupt_attached) {
+		return;
+	}
+	detachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN));
+	is_wake_interrupt_attached = false;
 }
 void configure_watchdog_8s_interrupt() {
 	MCUSR &= static_cast<uint8_t>(~_BV(WDRF));
@@ -294,7 +314,7 @@ void run_sim_flow() {
 		sim_bl.delete_all_sms();
 		sim_bl.startSmsReception();
 		// if (GpsSystem_BL::get_if_interrupt_enabled()) {
-			sim_bl.call_phone_number();
+		sim_bl.call_phone_number();
 		// }
 		is_first_sim_flow_run = false;
 	}
@@ -310,26 +330,24 @@ void run_sim_flow() {
 			sim_bl.analyze_sms_message(message_buffer, gps_connection_status);
 		}
 	}
-
+}
+void apply_post_sms_runtime_state() {
 	if (!GpsSystem_BL::get_if_interrupt_enabled()) {
 		if (is_interrupt_management_enabled) {
-			detachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN));
 			is_interrupt_management_enabled = false;
 			is_interrupt_triggered = false;
+			detach_wake_interrupt_if_attached();
 		}
 	}
 	else if (!is_interrupt_management_enabled) {
-		attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
 		is_interrupt_management_enabled = true;
 	}
-
 	if (GpsSystem_BL::get_if_sleep_mode_enabled()) {
 		is_required_sleep_mode = true;
 		watchdog_ticks_accumulator = 0U;
 		digitalWrite(APP_GPS_POWER_PIN, LOW);
 		GpsSystem_BL::disable_sleep_mode();
 	}
-
 	if (GpsSystem_BL::get_if_gps_flow_enabled()) {
 		is_required_sleep_mode = false;
 		watchdog_ticks_accumulator = 0U;
