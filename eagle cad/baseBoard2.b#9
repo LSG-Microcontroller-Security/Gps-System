@@ -3518,8 +3518,9 @@ design rules under a new name.</description>
 <contactref element="E$2" pad="+"/>
 <contactref element="E$41" pad="P$7"/>
 <wire x1="80.55" y1="2.6" x2="93.2" y2="15.25" width="1.27" layer="16" locked="yes"/>
-<wire x1="96" y1="18.05" x2="96" y2="23.2" width="1.27" layer="16"/>
-<wire x1="96" y1="18.05" x2="93.2" y2="15.25" width="1.27" layer="16"/>
+<wire x1="96" y1="19.05" x2="96" y2="23.2" width="1.27" layer="16"/>
+<wire x1="96" y1="19.05" x2="93.2" y2="16.25" width="1.27" layer="16"/>
+<wire x1="93.2" y1="16.25" x2="93.2" y2="15.25" width="1.27" layer="16"/>
 <wire x1="89.79" y1="23.42" x2="89" y2="22.63" width="1.27" layer="16"/>
 <wire x1="92.16" y1="23.42" x2="92.56" y2="23.82" width="1.27" layer="16"/>
 <wire x1="92.16" y1="23.42" x2="89.79" y2="23.42" width="1.27" layer="16"/>
