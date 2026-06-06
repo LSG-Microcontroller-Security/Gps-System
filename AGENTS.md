@@ -295,6 +295,12 @@
 - Usare l'andata a capo solo quando serve davvero per chiarezza o limiti di spazio.
 - Non spezzare automaticamente i parametri su piu' righe per stile, se la firma puo' stare bene su una riga.
 
+## Visual Micro E Librerie
+
+- Dopo modifiche alla struttura delle librerie Arduino, ai file `library.properties`, alle cartelle `src`, agli header pubblici o ai percorsi di include, ricordare sempre di fare in Visual Micro il `Rescan Toolchain Libraries`.
+- Il rescan serve per aggiornare la mappa interna delle librerie di Visual Micro; senza rescan puo' continuare a usare percorsi vecchi, cache di deep search o associazioni obsolete tra header e librerie.
+- Dopo il rescan, fare una build pulita o rebuild e verificare `board.buildinfo` per confermare quali librerie sono state realmente incluse e linkate.
+
 ## Stile Operativo
 
 - Il file `.ino` deve restare minimale: wiring, setup e loop.

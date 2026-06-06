@@ -16,13 +16,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "framework", "framework", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "commons", "commons", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_commons_commonsLayer.h
+		..\..\MicroControllerTeamProject\libraries\MF_Commons\src\mf_commons_commonsLayer.h = ..\..\MicroControllerTeamProject\libraries\MF_Commons\src\mf_commons_commonsLayer.h
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repository", "repository", "{867E6D12-78CD-467A-99CB-547E8B19D12E}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.cpp
-		..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h = ..\..\MicroControllerTeamProject\libraries\avr_mocking_framework\mf_repository_SimRepository.h
+		..\..\MicroControllerTeamProject\libraries\MF_SimRepository\src\mf_repository_SimRepository.cpp = ..\..\MicroControllerTeamProject\libraries\MF_SimRepository\src\mf_repository_SimRepository.cpp
+		..\..\MicroControllerTeamProject\libraries\MF_SimRepository\src\mf_repository_SimRepository.h = ..\..\MicroControllerTeamProject\libraries\MF_SimRepository\src\mf_repository_SimRepository.h
 	EndProjectSection
 EndProject
 Global

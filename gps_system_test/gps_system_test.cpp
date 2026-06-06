@@ -2,8 +2,8 @@
 #include "src/extend.h"
 #include "CppUnitTest.h"
 #include <mf_commons_commonsLayer.h>
-#include "../gps_system/src/mf_activity_NmeaGpsActivity.h"
-#include "../gps_system/src/mf_repository_NmeaGpsRepository.h"
+#include <mf_activity_NmeaGpsActivity.h>
+#include <mf_repository_NmeaGpsRepository.h>
 #include <initializer_list>
 #include <memory>
 #include <vector>

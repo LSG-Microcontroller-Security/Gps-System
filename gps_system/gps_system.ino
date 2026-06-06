@@ -11,12 +11,12 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "AppConfig.h"
-#include "mf_adapter_SoftwareSerialAdapter.h"
-#include "mf_repository_EepromRepository.h"
-#include "mf_repository_NmeaGpsRepository.h"
-#include "mf_repository_SimRepository.h"
-#include "mf_activity_NmeaGpsActivity.h"
-#include "mf_commons_commonsLayer.h"
+#include <mf_adapter_SoftwareSerialAdapter.h>
+#include <mf_repository_EepromRepository.h>
+#include <mf_repository_NmeaGpsRepository.h>
+#include <mf_repository_SimRepository.h>
+#include <mf_activity_NmeaGpsActivity.h>
+#include <mf_commons_commonsLayer.h>
 #include "src/GpsSystem_BL.h"
 extern unsigned int __heap_start;
 extern void* __brkval;
