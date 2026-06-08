@@ -36,6 +36,8 @@ uint8_t watchdog_ticks_accumulator = 0U;
 bool sim_800c_turn_on_module();
 void attach_wake_interrupt_if_enabled();
 void detach_wake_interrupt_if_attached();
+void clear_wake_interrupt_state();
+void enter_deep_sleep(bool is_watchdog_enabled);
 void apply_post_sms_runtime_state();
 
 ISR(WDT_vect) {
@@ -83,7 +85,10 @@ void loop() {
 	if (is_required_sleep_mode) {
 		is_watchdog_triggered = false;
 		digitalWrite(APP_GPS_POWER_PIN, LOW);
-		if (!is_sim800c_in_sleep_mode) {
+		if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
+			is_sim800c_in_sleep_mode = false;
+		}
+		else if (!is_sim800c_in_sleep_mode) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("sim sleep enter"));
 #endif
@@ -91,9 +96,12 @@ void loop() {
 			is_sim800c_in_sleep_mode = true;
 		}
 		attach_wake_interrupt_if_enabled();
-		enter_deep_sleep();
+		enter_deep_sleep(!GpsSystem_BL::get_if_sim_power_off_enabled());
 		detach_wake_interrupt_if_attached();
 		if (is_interrupt_triggered) {
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+			Serial.println(F("mcu sleep exit interrupt"));
+#endif
 			if (GpsSystem_BL::get_if_sim_power_off_enabled()) {
 				if (sim_800c_turn_on_module()) {
 					GpsSystem_BL::disable_sim_power_off_mode();
@@ -169,10 +177,15 @@ void loop() {
 void on_int0_wake() {
 	is_interrupt_triggered = true;
 }
+void clear_wake_interrupt_state() {
+	is_interrupt_triggered = false;
+	EIFR = static_cast<uint8_t>(_BV(INTF0));
+}
 void attach_wake_interrupt_if_enabled() {
 	if (!is_interrupt_management_enabled || is_wake_interrupt_attached) {
 		return;
 	}
+	clear_wake_interrupt_state();
 	attachInterrupt(digitalPinToInterrupt(APP_INTERRUPT_PIN), on_int0_wake, FALLING);
 	is_wake_interrupt_attached = true;
 }
@@ -191,7 +204,7 @@ void configure_watchdog_8s_interrupt() {
 void disable_watchdog() {
 	wdt_disable();
 }
-void enter_deep_sleep() {
+void enter_deep_sleep(bool is_watchdog_enabled) {
 	ADCSRA &= static_cast<uint8_t>(~_BV(ADEN));
 	power_adc_disable();
 	power_spi_disable();
@@ -201,12 +214,19 @@ void enter_deep_sleep() {
 	power_timer2_disable();
 	ACSR |= _BV(ACD);
 
-	configure_watchdog_8s_interrupt();
+	if (is_watchdog_enabled) {
+		configure_watchdog_8s_interrupt();
+	}
+	else {
+		disable_watchdog();
+	}
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	sleep_enable();
 	sleep_cpu();
 	sleep_disable();
-	disable_watchdog();
+	if (is_watchdog_enabled) {
+		disable_watchdog();
+	}
 	power_timer0_enable();
 	power_timer1_enable();
 	power_timer2_enable();

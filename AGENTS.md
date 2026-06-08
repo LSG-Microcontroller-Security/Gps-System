@@ -317,4 +317,6 @@
 - Evitare di mettere in `AppConfig` parametrizzazioni troppo legate ai singoli oggetti, sensori o componenti specifici.
 - La configurazione specifica degli oggetti deve restare sugli oggetti stessi o nei punti in cui vengono creati e inizializzati.
 - Nelle risposte essere sintetici e dire solo le cose piu' importanti.
+- Quando serve chiedere conferma all'utente prima di procedere, emettere un beep breve e distinto dal beep finale, se l'ambiente lo consente.
+- Quando viene completata un'elaborazione richiesta dall'utente, emettere un beep finale diverso, preferibilmente una breve sequenza di due beep o una frequenza piu' alta, se l'ambiente lo consente.
 - Se una regola non e' chiara, aggiornare questo file invece di duplicare istruzioni sparse.
