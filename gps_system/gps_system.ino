@@ -31,6 +31,12 @@ bool is_sim800c_in_sleep_mode = false;
 bool is_interrupt_management_enabled = true;
 bool is_wake_interrupt_attached = false;
 bool is_sim_netlight_disable_pending_after_power_on = true;
+constexpr uint8_t external_device_pins_portb_mask = _BV(PB0) | _BV(PB1) | _BV(PB2); // D8, D9, D10
+constexpr uint8_t external_device_pins_portd_mask = _BV(PD4) | _BV(PD6) | _BV(PD7); // D4, D6, D7
+uint8_t external_device_pins_ddrb_state = 0U;
+uint8_t external_device_pins_portb_state = 0U;
+uint8_t external_device_pins_ddrd_state = 0U;
+uint8_t external_device_pins_portd_state = 0U;
 // Watchdog counters
 uint8_t watchdog_ticks_accumulator = 0U;
 bool sim_800c_turn_on_module();
@@ -38,6 +44,8 @@ void attach_wake_interrupt_if_enabled();
 void detach_wake_interrupt_if_attached();
 void clear_wake_interrupt_state();
 void enter_deep_sleep(bool is_watchdog_enabled);
+void disable_external_device_pins_for_sleep();
+void restore_external_device_pins_after_sleep();
 void apply_post_sms_runtime_state();
 
 ISR(WDT_vect) {
@@ -65,7 +73,7 @@ void setup() {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("start"));
 #endif
-	pinMode(APP_INTERRUPT_PIN, INPUT_PULLUP);
+	//pinMode(APP_INTERRUPT_PIN, INPUT_PULLUP);
 	pinMode(APP_GPS_POWER_PIN, OUTPUT);
 	digitalWrite(APP_GPS_POWER_PIN, LOW);
 	pinMode(APP_SIM_SLEEP_PIN, OUTPUT);
@@ -73,10 +81,17 @@ void setup() {
 	// Rilascia il PWRKEY: evita una pressione lunga involontaria durante reset/deploy.
 	pinMode(APP_SIM_POWER_PIN, INPUT);
 	digitalWrite(APP_SIM_POWER_PIN, LOW);
+#if APP_START_IN_SLEEP_MODE_ENABLED
+	GpsSystem_BL::enable_start_in_sleep_mode();
+	is_required_sleep_mode = true;
+	is_sim800c_in_sleep_mode = false;
+	watchdog_ticks_accumulator = 0U;
+#else
 	delay(5000);
 	(void)sim_800c_turn_on_module();
 	run_sim_flow();
 	apply_post_sms_runtime_state();
+#endif
 	// USE ONLY WITH EEPROM CLEAR
 	// EepromRepository eeprom_repository;
 	// (void)GpsSystem_BL::store_phone_local_number_to_eeprom(eeprom_repository, XXXXXXXXXXXXXXXX); // bootstrap one-shot
@@ -96,7 +111,9 @@ void loop() {
 			is_sim800c_in_sleep_mode = true;
 		}
 		attach_wake_interrupt_if_enabled();
+		disable_external_device_pins_for_sleep();
 		enter_deep_sleep(!GpsSystem_BL::get_if_sim_power_off_enabled());
+		restore_external_device_pins_after_sleep();
 		detach_wake_interrupt_if_attached();
 		if (is_interrupt_triggered) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
@@ -372,5 +389,22 @@ void apply_post_sms_runtime_state() {
 		is_required_sleep_mode = false;
 		watchdog_ticks_accumulator = 0U;
 	}
+}
+void disable_external_device_pins_for_sleep() {
+	external_device_pins_ddrb_state = DDRB & external_device_pins_portb_mask;
+	external_device_pins_portb_state = PORTB & external_device_pins_portb_mask;
+	external_device_pins_ddrd_state = DDRD & external_device_pins_portd_mask;
+	external_device_pins_portd_state = PORTD & external_device_pins_portd_mask;
+
+	DDRB &= static_cast<uint8_t>(~external_device_pins_portb_mask);
+	PORTB &= static_cast<uint8_t>(~external_device_pins_portb_mask);
+	DDRD &= static_cast<uint8_t>(~external_device_pins_portd_mask);
+	PORTD &= static_cast<uint8_t>(~external_device_pins_portd_mask);
+}
+void restore_external_device_pins_after_sleep() {
+	PORTB = static_cast<uint8_t>((PORTB & static_cast<uint8_t>(~external_device_pins_portb_mask)) | external_device_pins_portb_state);
+	DDRB = static_cast<uint8_t>((DDRB & static_cast<uint8_t>(~external_device_pins_portb_mask)) | external_device_pins_ddrb_state);
+	PORTD = static_cast<uint8_t>((PORTD & static_cast<uint8_t>(~external_device_pins_portd_mask)) | external_device_pins_portd_state);
+	DDRD = static_cast<uint8_t>((DDRD & static_cast<uint8_t>(~external_device_pins_portd_mask)) | external_device_pins_ddrd_state);
 }
 

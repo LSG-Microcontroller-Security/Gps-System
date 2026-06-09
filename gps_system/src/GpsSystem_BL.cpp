@@ -238,6 +238,12 @@ bool GpsSystem_BL::get_if_sleep_mode_enabled() {
 bool GpsSystem_BL::get_if_sim_power_off_enabled() {
 	return is_sim_power_off_enabled;
 }
+void GpsSystem_BL::enable_start_in_sleep_mode() {
+	is_interrupt_enabled = true;
+	is_gps_flow_enabled = false;
+	is_sleep_mode_enabled = false;
+	is_sim_power_off_enabled = true;
+}
 void GpsSystem_BL::disable_sleep_mode() {
 	is_sleep_mode_enabled = false;
 }
