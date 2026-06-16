@@ -25,10 +25,20 @@ GpsSystem_BL::GpsSystem_BL(SimRepository* sim_repository, EepromRepository* eepr
 bool GpsSystem_BL::read_and_log_coordinates(GpsConnectionStatus& out_status) {
 	this->gps_activity_->get_repository().listen();
 	const auto gps_status = gps_activity_->update_gps_status();
-	out_status = gps_status;
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+	if (gps_status.has_position) {
+		Serial.print(F("gps valid position lat_x1000000: "));
+		Serial.print(static_cast<long>(gps_status.latitude_x1000000));
+		Serial.print(F(" lon_x1000000: "));
+		Serial.print(static_cast<long>(gps_status.longitude_x1000000));
+		Serial.print(F(" cycles_since_last_position: "));
+		Serial.println(gps_status.cycles_since_last_position);
+	}
+#endif
 	if (!gps_status.has_recent_coordinates) {
 		return false;
 	}
+	out_status = gps_status;
 	/*   float latitude = static_cast<float>(gps_status.latitude_x1000000) / 1000000.0f;
 	   float longitude = static_cast<float>(gps_status.longitude_x1000000) / 1000000.0f;
 	   Serial.print("https://www.google.com/maps/search/?api=1&query=");
@@ -153,7 +163,10 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 #endif
 			break;
 		}
-		if (!gps_status.has_position) {
+		if (!gps_status.has_recent_coordinates) {
+#if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
+			Serial.println(F("Q no recent gps coordinates"));
+#endif
 			break;
 		}
 		const GpsSmsData gps_sms_data = {
