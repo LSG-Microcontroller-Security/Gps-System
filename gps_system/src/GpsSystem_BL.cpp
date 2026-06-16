@@ -48,6 +48,7 @@ void GpsSystem_BL::call_phone_number() {
 #if APP_SIM_ENABLE_PHONE_CALLS
 	sim_repository_->listen();
 	sim_repository_->call(number);
+	sim_repository_->delay(20000UL);
 #endif
 }
 void GpsSystem_BL::send_sms(const GpsSmsData& gps_sms_data) {
@@ -132,7 +133,6 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		is_gps_flow_enabled = false;
 		is_sim_power_off_enabled = true;
 		this->call_phone_number();
-		this->sim_repository_->delay(20000UL);
 		bool is_module_powered_off = this->sim_repository_->turn_off_module();
 		if (!is_module_powered_off) {
 			this->sim_repository_->delay(1200UL);
