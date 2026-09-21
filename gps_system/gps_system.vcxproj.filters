@@ -39,7 +39,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gps_system.ino">
+    <ClCompile Include="Gps-system.ino">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\GpsSystem_BL.cpp">

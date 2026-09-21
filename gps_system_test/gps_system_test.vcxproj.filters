@@ -23,7 +23,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gps_system_test.cpp">
+    <ClCompile Include="Gps-System-Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
@@ -57,4 +57,3 @@
     </ClInclude>
   </ItemGroup>
 </Project>
-
