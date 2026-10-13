@@ -105,8 +105,10 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	if (message == nullptr || message[0] == '\0') {
 		return;
 	}
+	// Il comando e' identificato dal primo carattere; solo '#' usa anche il resto del messaggio.
 	switch (message[0]) {
 	case '#': {
+		// SMS "#<numero>": salva in EEPROM un numero locale di 10 cifre e, se valido, lo chiama per conferma.
 		const char* phone_number = message + 1;
 		if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
 			(void)call_phone_number();
@@ -122,6 +124,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'D':{
+		// SMS "D": disattiva il risveglio tramite interrupt e il flusso GPS, poi entra in sleep con SIM attiva.
+		// La chiamata al numero configurato conferma la ricezione del comando.
 		is_sleep_mode_enabled = true;
 		is_interrupt_enabled = false;
 		is_gps_flow_enabled = false;
@@ -130,6 +134,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'A':{
+		// SMS "A": abilita il risveglio tramite interrupt, disattiva il flusso GPS ed entra in sleep.
+		// La SIM resta attiva e una chiamata conferma la ricezione del comando.
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
@@ -138,6 +144,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'S':{
+		// SMS "S": abilita il risveglio tramite interrupt, entra in sleep e tenta di spegnere il modulo SIM.
+		// Prima chiama il numero configurato; se lo spegnimento fallisce, riprova una volta.
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
@@ -152,6 +160,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'Q': {
+		// SMS "Q": alla prima richiesta avvia il flusso GPS e conferma con una chiamata.
+		// Se il flusso e' gia' attivo, invia via SMS le coordinate recenti, quando disponibili.
 		if (!is_gps_flow_enabled) {
 			is_interrupt_enabled = false;
 			is_gps_flow_enabled = true;
