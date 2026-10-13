@@ -105,15 +105,10 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	if (message == nullptr || message[0] == '\0') {
 		return;
 	}
-<<<<<<< Updated upstream
-	switch (message[0]) {
-	case '#': {
-=======
 	// The first character identifies the command; only '#' uses the rest of the message.
 	switch (message[0]) {
 	case '#': {
 		// SMS "#<number>": stores a valid 10-digit local number in EEPROM, then calls it to confirm.
->>>>>>> Stashed changes
 		const char* phone_number = message + 1;
 		if (store_phone_local_number_to_eeprom(*eeprom_repository_, phone_number)) {
 			(void)call_phone_number();
@@ -129,11 +124,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'D':{
-<<<<<<< Updated upstream
-=======
 		// SMS "D": disables interrupt wake-up and GPS flow, then enters sleep with the SIM active.
 		// A call to the configured number confirms receipt of the command.
->>>>>>> Stashed changes
 		is_sleep_mode_enabled = true;
 		is_interrupt_enabled = false;
 		is_gps_flow_enabled = false;
@@ -142,11 +134,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'A':{
-<<<<<<< Updated upstream
-=======
 		// SMS "A": enables interrupt wake-up, disables GPS flow, and enters sleep.
 		// The SIM stays active, and a call confirms receipt of the command.
->>>>>>> Stashed changes
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
@@ -155,11 +144,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'S':{
-<<<<<<< Updated upstream
-=======
 		// SMS "S": enables interrupt wake-up, enters sleep, and attempts to power off the SIM module.
 		// It calls the configured number first; if power-off fails, it retries once.
->>>>>>> Stashed changes
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
@@ -174,11 +160,8 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 		break;
 	}
 	case 'Q': {
-<<<<<<< Updated upstream
-=======
 		// SMS "Q": starts GPS flow and confirms by calling when the flow is inactive.
 		// If GPS flow is already active, it sends recent coordinates by SMS when available.
->>>>>>> Stashed changes
 		if (!is_gps_flow_enabled) {
 			is_interrupt_enabled = false;
 			is_gps_flow_enabled = true;
