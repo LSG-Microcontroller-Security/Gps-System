@@ -133,10 +133,12 @@ void GpsSystem_BL::analyze_sms_message(const char* message, const GpsConnectionS
 	}
 	case 'A':{
 		// SMS "A": enables interrupt wake-up, disables GPS flow, and enters sleep.
+		// The SIM stays active, and a call confirms receipt of the command.
 		is_interrupt_enabled = true;
 		is_sleep_mode_enabled = true;
 		is_gps_flow_enabled = false;
 		is_sim_power_off_enabled = false;
+		this->call_phone_number();
 		break;
 	}
 	case 'S':{
