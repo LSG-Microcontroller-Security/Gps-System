@@ -14,7 +14,7 @@ jobs:
     outputs:
       present: ${{ steps.sketch.outputs.present }}
     env:
-      GPM_SKETCH_PATH: "gps_system"
+      GPM_SKETCH_PATH: "Gps-System"
     steps:
       - uses: actions/checkout@v4
       - name: Locate sketch
@@ -42,7 +42,7 @@ jobs:
     if: needs.detect-sketch.outputs.present == 'true'
     runs-on: ubuntu-latest
     env:
-      GPM_SKETCH_PATH: "gps_system"
+      GPM_SKETCH_PATH: "Gps-System"
       GPM_FQBN: "MiniCore:avr:328:clock=8MHz_internal,bootloader=no_bootloader"
       GPM_CORE: "MiniCore:avr"
       GPM_CORE_URL: "https://mcudude.github.io/MiniCore/package_MCUdude_MiniCore_index.json"
