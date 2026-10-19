@@ -1,0 +1,7 @@
+Compiling 'Gps-System' for 'ATmega328 (MiniCore_328)'
+Build Folder: "file:///C:/Users/luigi/AppData/Local/Temp/VMBuilds/Gps-System/MiniCore_328/Release"
+  Using previously compiled file: C:\Users\luigi\AppData\Local\Temp\VMBCore\arduino16x\96352b5cbf8d7ae7e51ca472546f3a91\core\wiring_pulse.S.o
+ 
+Program size: 19310 bytes (used 59% of a 32768 byte maximum) (36.18 secs)
+Minimum Memory Usage: 674 bytes (33% of a 2048 byte maximum)
+ 
