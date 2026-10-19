@@ -38,7 +38,7 @@
     <ProjectGuid>{F7F14BBD-1F68-4AE7-9D05-E756A50DD3BE}</ProjectGuid>
     <Keyword>Linux</Keyword>
     <RootNamespace>gps_system</RootNamespace>
-    <ProjectName>Gps-system</ProjectName>
+    <ProjectName>Gps-System</ProjectName>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
