@@ -247,6 +247,25 @@ bool GpsSystem_BL::store_phone_local_number_to_eeprom(EepromRepository& eeprom_r
 
 	return eeprom_repository.write_uint8(APP_PHONE_LOCAL_NUMBER_LENGTH, static_cast<uint8_t>('\0'));
 }
+bool GpsSystem_BL::is_movement_confirmed(uint8_t active_intervals_mask) {
+    uint8_t active_intervals = 0U;
+    uint8_t first_active_interval = movement_observation_intervals;
+    uint8_t last_active_interval = 0U;
+
+    for (uint8_t interval = 0U; interval < movement_observation_intervals; ++interval) {
+        if ((active_intervals_mask & static_cast<uint8_t>(1U << interval)) == 0U) {
+            continue;
+        }
+        ++active_intervals;
+        if (first_active_interval == movement_observation_intervals) {
+            first_active_interval = interval;
+        }
+        last_active_interval = interval;
+    }
+
+    return active_intervals >= movement_minimum_active_intervals &&
+        static_cast<uint8_t>(last_active_interval - first_active_interval) >= movement_minimum_spread_intervals;
+}
 bool GpsSystem_BL::get_if_interrupt_enabled() {
 	return is_interrupt_enabled;
 }

@@ -33,6 +33,13 @@ public:
     void analyze_sms_message(const char* message, const GpsConnectionStatus& gps_status);
     void hang_up_phone_call();
     void startSmsReception();
+    // Provisional tilt-filter parameters: calibrate after hardware measurements.
+    // Eight observation slots fit into one byte of motion history.
+    static constexpr uint8_t movement_observation_intervals = 8U;
+    static constexpr uint16_t movement_observation_interval_ms = 500U;
+    static constexpr uint8_t movement_minimum_active_intervals = 3U;
+    static constexpr uint8_t movement_minimum_spread_intervals = 4U;
+    static bool is_movement_confirmed(uint8_t active_intervals_mask);
     static bool get_if_interrupt_enabled();
     static bool get_if_gps_flow_enabled();
     static bool get_if_sleep_mode_enabled();

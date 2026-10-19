@@ -4,6 +4,7 @@
 #include <mf_commons_commonsLayer.h>
 #include <mf_activity_NmeaGpsActivity.h>
 #include <mf_repository_NmeaGpsRepository.h>
+#include "../Gps-System/src/GpsSystem_BL.h"
 #include <initializer_list>
 #include <memory>
 #include <vector>
@@ -61,6 +62,18 @@ void setup_repository_read_script(Mock<NmeaGpsRepository>& mocked_repository, co
 namespace GpsSystemTest {
     TEST_CLASS(GpsSystemTest) {
     public:
+        TEST_METHOD(movement_wake_rejects_isolated_and_short_bursts) {
+            Assert::IsFalse(GpsSystem_BL::is_movement_confirmed(0b00000000U));
+            Assert::IsFalse(GpsSystem_BL::is_movement_confirmed(0b00000001U));
+            Assert::IsFalse(GpsSystem_BL::is_movement_confirmed(0b00000111U));
+            Assert::IsFalse(GpsSystem_BL::is_movement_confirmed(0b10000001U));
+        }
+
+        TEST_METHOD(movement_wake_accepts_pulses_distributed_over_time) {
+            Assert::IsTrue(GpsSystem_BL::is_movement_confirmed(0b00010101U));
+            Assert::IsTrue(GpsSystem_BL::is_movement_confirmed(0b10001001U));
+        }
+
         TEST_METHOD(update_gps_status_loads_trace_into_connection_status) {
             Mock<NmeaGpsRepository> mocked_nmea_gps_repository;
             std::vector<const char*> read_script;
