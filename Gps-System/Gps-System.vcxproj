@@ -80,7 +80,7 @@
     <TargetOSAndVersion>Arduino</TargetOSAndVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="Gps-system.ino">
+    <ClCompile Include="Gps-System.ino">
       <FileType>CppCode</FileType>
       <DeploymentContent>true</DeploymentContent>
     </ClCompile>
