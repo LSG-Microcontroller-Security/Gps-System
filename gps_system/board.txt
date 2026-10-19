@@ -1,2 +1,0 @@
-vm.preproc.lib-search.lib-in-lib=top-level
-vm.preproc.lib-search.lib-in-sketch=ino-code-only

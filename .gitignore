@@ -10,3 +10,4 @@ GitVersion.generated.h
 GitVersion.generated.tmp
 !GitVersion.h
 __vm/
+Gps-System/__vm/
