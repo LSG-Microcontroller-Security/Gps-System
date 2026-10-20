@@ -11,6 +11,7 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "AppConfig.h"
+#include "GitVersion.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
 #include <mf_repository_EepromRepository.h>
 #include <mf_repository_NmeaGpsRepository.h>
@@ -72,6 +73,11 @@ void print_free_memory() {
 #endif
 void setup() {
 	Serial.begin(9600);
+	// GS-7: versions are generated at prebuild time and read directly from flash.
+	Serial.print(F("Firmware Git: "));
+	Serial.println(F(GIT_VERSION));
+	Serial.print(F("Libraries Git: "));
+	Serial.println(F(GIT_LIBRARIES_VERSION));
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("start"));
 #endif

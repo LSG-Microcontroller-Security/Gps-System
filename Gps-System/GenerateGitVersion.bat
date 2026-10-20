@@ -37,9 +37,18 @@ if not defined HASH goto fail
 echo Git version: %HASH%
 goto finish
 :development
+REM Use the exact locally checked-out firmware commit on development branches.
+REM Mark tracked/untracked source changes explicitly rather than claiming a clean commit.
+git -C "%REPO%" rev-parse --short=7 HEAD > "%GITTMP%"
+if errorlevel 1 goto fail
+set /p HASH=<"%GITTMP%"
+if not defined HASH goto fail
+git -C "%REPO%" status --porcelain -- . ":(exclude)**/GitVersion.generated.h" ":(exclude,glob)**/*.vcxproj" > "%GITTMP%"
+if errorlevel 1 goto fail
+for %%A in ("%GITTMP%") do if not "%%~zA"=="0" set "HASH=%HASH%-dirty"
 > "%TMP%" echo #pragma once
->> "%TMP%" echo #define GIT_VERSION "XXXXXXX"
-echo Git version: XXXXXXX
+>> "%TMP%" echo #define GIT_VERSION "%HASH%"
+echo Git version: %HASH%
 :finish
 REM Synchronize local Git library revisions before completing this firmware build.
 REM The shared .gpm/avr-libraries.json travels with commits through PRs and releases.
