@@ -11,6 +11,7 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "AppConfig.h"
+#include "GitVersion.h"
 #include <mf_adapter_SoftwareSerialAdapter.h>
 #include <mf_repository_EepromRepository.h>
 #include <mf_repository_NmeaGpsRepository.h>
@@ -26,6 +27,7 @@ bool is_first_sim_flow_run = true;
 constexpr uint8_t watchdog_ticks_intervall = 8U; // 8 * 8s = circa 64s
 volatile bool is_interrupt_triggered = false;
 volatile bool is_watchdog_triggered = false;
+volatile uint8_t wake_interrupt_edges = 0U;
 bool is_required_sleep_mode = true;
 bool is_sim800c_in_sleep_mode = false;
 bool is_interrupt_management_enabled = true;
@@ -43,6 +45,7 @@ bool sim_800c_turn_on_module();
 void attach_wake_interrupt_if_enabled();
 void detach_wake_interrupt_if_attached();
 void clear_wake_interrupt_state();
+bool is_wake_movement_confirmed();
 void enter_deep_sleep(bool is_watchdog_enabled);
 void disable_external_device_pins_for_sleep();
 void restore_external_device_pins_after_sleep();
@@ -70,6 +73,11 @@ void print_free_memory() {
 #endif
 void setup() {
 	Serial.begin(9600);
+	// GS-7: versions are generated at prebuild time and read directly from flash.
+	Serial.print(F("Firmware Git: "));
+	Serial.println(F(GIT_VERSION));
+	Serial.print(F("Libraries Git: "));
+	Serial.println(F(GIT_LIBRARIES_VERSION));
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 	Serial.println(F("start"));
 #endif
@@ -114,7 +122,21 @@ void loop() {
 		disable_external_device_pins_for_sleep();
 		enter_deep_sleep(!GpsSystem_BL::get_if_sim_power_off_enabled());
 		restore_external_device_pins_after_sleep();
-		detach_wake_interrupt_if_attached();
+        // INT0 stays attached briefly after a motion wake to observe later edges.
+        if (is_interrupt_triggered) {
+            const bool is_movement_confirmed = is_wake_movement_confirmed();
+            detach_wake_interrupt_if_attached();
+            if (!is_movement_confirmed) {
+                clear_wake_interrupt_state();
+                // Preserve the watchdog path if both wake sources fired.
+                if (!is_watchdog_triggered) {
+                    return;
+                }
+            }
+        }
+        else {
+            detach_wake_interrupt_if_attached();
+        }
 		if (is_interrupt_triggered) {
 #if _DEBUG_FOR_SERIAL && !_ON_MOCKING_TESTS
 			Serial.println(F("mcu sleep exit interrupt"));
@@ -192,11 +214,35 @@ void loop() {
 	delay(1000);
 }
 void on_int0_wake() {
-	is_interrupt_triggered = true;
+    is_interrupt_triggered = true;
+    if (wake_interrupt_edges < 255U) {
+        ++wake_interrupt_edges;
+    }
+}
+bool is_wake_movement_confirmed() {
+    // Ignore the wake edge itself. Count only later edges, across time slots.
+    noInterrupts();
+    wake_interrupt_edges = 0U;
+    interrupts();
+
+    uint8_t active_intervals_mask = 0U;
+    for (uint8_t interval = 0U; interval < GpsSystem_BL::movement_observation_intervals; ++interval) {
+        delay(GpsSystem_BL::movement_observation_interval_ms);
+        noInterrupts();
+        const uint8_t edges_in_interval = wake_interrupt_edges;
+        wake_interrupt_edges = 0U;
+        interrupts();
+
+        if (edges_in_interval != 0U) {
+            active_intervals_mask |= static_cast<uint8_t>(1U << interval);
+        }
+    }
+    return GpsSystem_BL::is_movement_confirmed(active_intervals_mask);
 }
 void clear_wake_interrupt_state() {
-	is_interrupt_triggered = false;
-	EIFR = static_cast<uint8_t>(_BV(INTF0));
+    is_interrupt_triggered = false;
+    wake_interrupt_edges = 0U;
+    EIFR = static_cast<uint8_t>(_BV(INTF0));
 }
 void attach_wake_interrupt_if_enabled() {
 	if (!is_interrupt_management_enabled || is_wake_interrupt_attached) {

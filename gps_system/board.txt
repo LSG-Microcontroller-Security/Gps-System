@@ -1,2 +1,1 @@
-vm.preproc.lib-search.lib-in-lib=top-level
-vm.preproc.lib-search.lib-in-sketch=ino-code-only
+recipe.hooks.prebuild.9.pattern=cmd.exe /c "{build.project_path}\\GenerateGitVersion.bat" "{build.path}"

@@ -164,7 +164,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\MicroControllerTeamProject\libraries\MF_NmeaGps\src\mf_activity_NmeaGpsActivity.cpp" />
-    <ClCompile Include="..\gps_system\src\GpsSystem_BL.cpp" />
+    <ClCompile Include="..\Gps-System\src\GpsSystem_BL.cpp" />
     <ClCompile Include="Gps-System-Test.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -176,7 +176,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\MF_NmeaGps\src\mf_activity_NmeaGpsActivity.h" />
     <ClInclude Include="..\..\..\MicroControllerTeamProject\libraries\MF_NmeaGps\src\mf_repository_NmeaGpsRepository.h" />
-    <ClInclude Include="..\gps_system\AppConfig.h" />
+    <ClInclude Include="..\Gps-System\AppConfig.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="src\extend.h" />
     <ClInclude Include="src\fakeit.hpp" />
