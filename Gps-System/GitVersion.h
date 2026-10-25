@@ -10,11 +10,11 @@
 #endif
 
 #ifndef GIT_VERSION
-#  define GIT_VERSION "UNAVAILABLE"
+#  define GIT_VERSION "UNBUILT"
 #endif
 
 // Dependency versions are paired with this firmware revision by the AVR build
 // helpers. The value is populated from the tracked .gpm/avr-libraries.json.
 #ifndef GIT_LIBRARIES_VERSION
-#  define GIT_LIBRARIES_VERSION "UNAVAILABLE"
+#  define GIT_LIBRARIES_VERSION ""
 #endif
