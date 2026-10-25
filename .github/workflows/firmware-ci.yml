@@ -62,9 +62,17 @@ jobs:
       - name: Generate CI version header
         shell: bash
         run: |
-          VERSION=XXXXXXX
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == release/* ]]; then
-            VERSION="$(git rev-parse --short=7 HEAD)"
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          VERSION="$(git rev-parse --short=7 HEAD)"
+          if [[ "$BRANCH" != main && "$BRANCH" != master ]]; then
+            VERSION+="*"
+          fi
+          if [[ -n "$(git status --porcelain -- . ':(exclude)**/GitVersion.generated.h' ':(exclude,glob)**/*.vcxproj')" ]]; then
+            if [[ "$BRANCH" == release/* ]]; then
+              echo "Release CI refuses uncommitted firmware changes" >&2
+              exit 1
+            fi
+            VERSION+="X"
           fi
           printf '#pragma once\n#define GIT_VERSION "%s"\n' "$VERSION" > "$GPM_SKETCH_PATH/GitVersion.generated.h"
       - name: Compile AVR firmware

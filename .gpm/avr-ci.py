@@ -32,6 +32,17 @@ def add_library_path(arguments, path, layout):
     arguments.extend(["--libraries" if layout == "collection" else "--library", str(path)])
 
 
+def is_official_library_checkout(directory):
+    """Pinned detached commits are official when reachable from main/master."""
+    containing = subprocess.check_output(
+        ["git", "-C", str(directory), "branch", "--all", "--contains",
+         "HEAD", "--format=%(refname:short)"],
+        text=True,
+    )
+    official = {"main", "master", "origin/main", "origin/master"}
+    return any(name.strip() in official for name in containing.splitlines())
+
+
 def main():
     if len(sys.argv) != 3:
         raise ValueError("Usage: avr-ci.py FQBN SKETCH_DIRECTORY")
@@ -74,16 +85,13 @@ def main():
         raise ValueError("Missing generated firmware version header: " + str(header))
     # One Git library uses its abbreviated commit, just like GIT_VERSION.
     # For multiple pinned dependencies, use a stable 7-character fingerprint.
-    if not versions:
-        short_version = "XXXXXXX"
-    elif len(versions) == 1 and len(git_refs) == 1:
+    if len(versions) == 1 and len(git_refs) == 1:
         short_version = git_refs[0][:7].lower()
     else:
+        # Deterministic fingerprint for multiple (or zero) dependencies.
         short_version = hashlib.sha256(";".join(versions).encode("utf-8")).hexdigest()[:7]
-    with header.open("a", encoding="utf-8") as output:
-        output.write("#define GIT_LIBRARIES_VERSION " + json.dumps(short_version) + "\n")
-    print("CI GIT_LIBRARIES_VERSION:", short_version, flush=True)
-
+    # Library provenance is independent of the firmware CI source branch.
+    has_unofficial_git_libraries = False
     build_args = ["arduino-cli", "compile", "--fqbn", sys.argv[1]]
     with tempfile.TemporaryDirectory(prefix="gpm-avr-libraries-") as tmp:
         for lib in data.get("arduinoLibraryManager", []):
@@ -105,6 +113,8 @@ def main():
                 if not isinstance(ref, str) or ref.startswith("-"):
                     raise ValueError("Invalid Git reference")
                 run("git", "-C", destination, "checkout", "--quiet", "--detach", ref)
+            if not is_official_library_checkout(destination):
+                has_unofficial_git_libraries = True
             subdir = source.get("subdirectory", "")
             if not isinstance(subdir, str):
                 raise ValueError("Invalid Git library subdirectory")
@@ -116,6 +126,13 @@ def main():
         for local in data.get("projectLibraryPaths", []):
             path = project_directory(local["path"])
             add_library_path(build_args, path, local.get("layout", "collection"))
+
+        # Any Git dependency absent from main/master marks the combined version.
+        if has_unofficial_git_libraries:
+            short_version += "*"
+        with header.open("a", encoding="utf-8") as output:
+            output.write("#define GIT_LIBRARIES_VERSION " + json.dumps(short_version) + "\n")
+        print("CI GIT_LIBRARIES_VERSION:", short_version, flush=True)
 
         build_args.append(sys.argv[2])
         run(*build_args)

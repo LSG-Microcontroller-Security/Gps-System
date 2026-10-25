@@ -10,7 +10,7 @@
 #endif
 
 #ifndef GIT_VERSION
-#  define GIT_VERSION "XXXXXXX"
+#  define GIT_VERSION "UNBUILT"
 #endif
 
 // Dependency versions are paired with this firmware revision by the AVR build
