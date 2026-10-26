@@ -77,8 +77,24 @@ function get_remote_library_revision([string]$library_root) {
     }
 }
 
-# The ONLY Windows Form in the active AVR prebuild: read-only, blocking release
-# mismatch diagnostics. A copy button never changes Git checkout or the manifest.
+# A protected Dirty build cannot proceed. On interactive Windows the user sees a
+# minimal blocking notice, without filenames, hashes or override choices.
+function Stop-DirtyProtectedBuild {
+    $message = 'Il repository è sporco. Per procedere con la compilazione è necessario ripulirlo.'
+    if (-not ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
+        [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT)) {
+        Add-Type -AssemblyName System.Windows.Forms
+        [void][System.Windows.Forms.MessageBox]::Show(
+            $message,
+            'GPM - Compilazione bloccata',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning)
+    }
+    throw $message
+}
+
+# Release mismatch diagnostics remain read-only and blocking; the copy button
+# never changes the Git checkout or manifest.
 function Show-ReleaseLockMismatch([string]$Details) {
     Write-Warning $Details
     if ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
@@ -290,6 +306,9 @@ try {
     if ($dirtyNames.Count -gt 0) {
         $names = ($dirtyNames | Select-Object -Unique) -join ', '
         if (-not $developmentBranch) {
+            if ($branch -match '^(release/.+|main|master)$') {
+                Stop-DirtyProtectedBuild
+            }
             throw "Build blocked on protected branch '$branch': dirty repositories: $names"
         }
         Write-Warning "Uncommitted firmware/library changes: $names. Build will be marked X."
