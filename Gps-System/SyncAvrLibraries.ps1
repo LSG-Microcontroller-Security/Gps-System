@@ -187,9 +187,6 @@ function Normalize-Remote([string]$Remote) {
     elseif ($url -match '^ssh://git@github\.com/(.+)$') { $url = "https://github.com/$($Matches[1])" }
     return ($url -replace '\.git$', '').TrimEnd('/')
 }
-function Write-Utf8([string]$Path, [string]$Text) {
-    [System.IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding($false)))
-}
 # Inspecting a hash in a Git client may also change the local checkout. Never
 # publish decisions made against an earlier HEAD, branch or worktree state.
 function assert_repository_unchanged([string]$repository_root, [string]$expected_head, [string]$expected_branch, [string]$expected_status) {
@@ -222,7 +219,6 @@ try {
         $mapping = Get-Content -LiteralPath $mappingFile -Raw -Encoding UTF8 | ConvertFrom-Json
         $localSources = @($mapping.sources | Where-Object { $null -ne $_ })
     }
-    $changed = $false
     $developmentBranch = $branch -match '^(develop|feature/.+|fix/.+|bugfix/.+|task/.+|hotfix/.+)$'
     $hasDirtyLibraries = $false
     $hasUnofficialLibraryBranch = $false
@@ -230,7 +226,6 @@ try {
     $firmwareStatus = Invoke-Git $repo @('status', '--porcelain', '--untracked-files=all')
     if ($firmwareStatus) { $dirtyNames.Add((Split-Path $repo -Leaf)) }
     $localRevisions = @()
-    $pendingUpdates = @()
     $revisionErrors = @()
     $revision_checks = @()
     foreach ($source in $repositories) {
@@ -284,14 +279,14 @@ try {
                 $revisionErrors += "Library version mismatch on protected/non-development branch '$branch' for $($source.url). Required $($source.ref), local $head. Manually check out the required library commit to rebuild; for newer libraries, update the manifest via feature/develop -> release -> main."
             }
             else {
-                $pendingUpdates += [pscustomobject]@{ source = $source; head = $head }
+                Write-Warning "Development uses local library commit $head (pinned manifest: $($source.ref)). Rebuild is read-only: run GPM on the application feature to record the chosen revisions before its PR."
             }
         }
         else { Write-Host "AVR library commit matches manifest: $head" }
     }
 
     # Never prompt on develop/feature: report dirty worktrees and preserve X.
-    # Never alter the manifest while any linked library is dirty.
+    # Do not alter the manifest on any branch, even if libraries are clean.
     if ($dirtyNames.Count -gt 0) {
         $names = ($dirtyNames | Select-Object -Unique) -join ', '
         if (-not $developmentBranch) {
@@ -304,14 +299,8 @@ try {
     # their post-merge snapshot. A mismatch invokes the single blocking form.
     Verify-ReleaseLock -Repository $repo -Branch $branch -FirmwareHead $firmware_head -ManifestPath $manifestFile -Revisions $revision_checks
 
-    # Newer official remote library commits are advisory. The project manifest,
-    # NOT today's remote HEAD, determines the reproducible release revision.
-    foreach ($revision_check in $revision_checks) {
-        if ($developmentBranch -and [string]$revision_check.source.ref -cne [string]$revision_check.head) {
-            Write-Warning "Development library revision differs from the manifest; update pending (only if clean)."
-        }
-        # No automatic release checkout, approval or change to the pinned SHA.
-    }
+    # A newer official library HEAD is never a reason to rewrite the manifest.
+    # The branch-specific lock and committed dependency pin are authoritative.
     if ($revisionErrors.Count -gt 0) {
         throw ($revisionErrors -join [Environment]::NewLine)
     }
@@ -324,25 +313,9 @@ try {
     if (-not (Test-Path -LiteralPath $manifestFile) -or (Get-Content -LiteralPath $manifestFile -Raw -Encoding UTF8) -cne $manifest_snapshot) {
         throw 'AVR dependency manifest changed during prebuild verification. Rebuild to verify the new manifest.'
     }
-    # Never record a partial set of local commits while any library has
-    # uncommitted changes. Only clean development checkouts update the manifest.
-    if ($hasDirtyLibraries) {
-        if ($pendingUpdates.Count -gt 0) {
-            Write-Warning 'The AVR library manifest was NOT updated because local libraries are dirty. Commit the libraries, then rebuild before opening a firmware PR.'
-        }
-    }
-    else {
-        foreach ($update in $pendingUpdates) {
-            Write-Host "AVR libraries: $($update.source.url) $($update.source.ref) -> $($update.head)"
-            $update.source.ref = $update.head
-            $changed = $true
-        }
-    }
-    if ($changed) {
-        $json = $manifest | ConvertTo-Json -Depth 30
-        Write-Utf8 $manifestFile ($json + "`n")
-        Write-Host 'Updated .gpm/avr-libraries.json: commit it with your firmware before opening the PR.'
-    }
+    # The AVR prebuild is strictly read-only for tracked project files on all
+    # branches. GPM captures selected library revisions on application features,
+    # then the normal PR process carries the manifest to develop/release/main.
     # The generated header is ignored by Git. Its paired version references
     # are reproducible from the committed firmware and library manifest.
     $versions = @()
