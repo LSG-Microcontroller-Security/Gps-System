@@ -76,113 +76,110 @@ function get_remote_library_revision([string]$library_root) {
         if ($null -ne $git_process) { $git_process.Dispose() }
     }
 }
-# The GUI is available only for a local, interactive Windows build.
-# Keeping this as a separate function also allows headless regression tests
-# to substitute a decision without weakening the production safety checks.
-function Request-DirtyBuildApproval([string]$Message) {
+
+# The ONLY Windows Form in the active AVR prebuild: read-only, blocking release
+# mismatch diagnostics. A copy button never changes Git checkout or the manifest.
+function Show-ReleaseLockMismatch([string]$Details) {
+    Write-Warning $Details
     if ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
         [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
-        throw "$Message`r`nBuild stopped: interactive confirmation is unavailable."
+        throw "GPM RELEASE LOCK MISMATCH: $Details"
     }
-    try {
-        Add-Type -AssemblyName System.Windows.Forms
-        $answer = [System.Windows.Forms.MessageBox]::Show(
-            "$Message`r`n`r`nThese local changes are not committed to Git and may make this build unreproducible.`r`n`r`nDo you want to continue the build anyway?",
-            'GPM - WARNING: Uncommitted Git Changes',
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Warning,
-            [System.Windows.Forms.MessageBoxDefaultButton]::Button2
-        )
-        return ($answer -eq [System.Windows.Forms.DialogResult]::Yes)
-    }
-    catch { throw "$Message`r`nCannot display confirmation: $($_.Exception.Message)" }
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = 'GPM - Release revision mismatch (build blocked)'
+    $dialog.Size = New-Object System.Drawing.Size(840, 490)
+    $dialog.StartPosition = 'CenterScreen'
+    $dialog.FormBorderStyle = 'FixedDialog'
+    $dialog.MaximizeBox = $false
+    $dialog.MinimizeBox = $false
+    $detailsText = New-Object System.Windows.Forms.TextBox
+    $detailsText.Multiline = $true
+    $detailsText.ReadOnly = $true
+    $detailsText.WordWrap = $false
+    $detailsText.ScrollBars = 'Both'
+    $detailsText.Text = $Details
+    $detailsText.SetBounds(14, 14, 795, 370)
+    $dialog.Controls.Add($detailsText)
+    $copyButton = New-Object System.Windows.Forms.Button
+    $copyButton.Text = 'Copy all hashes'
+    $copyButton.SetBounds(14, 405, 145, 30)
+    $copyButton.Add_Click({ [System.Windows.Forms.Clipboard]::SetText($detailsText.Text) })
+    $dialog.Controls.Add($copyButton)
+    $closeButton = New-Object System.Windows.Forms.Button
+    $closeButton.Text = 'Close - cancel build'
+    $closeButton.SetBounds(640, 405, 168, 30)
+    $closeButton.Add_Click({ $dialog.Close() })
+    $dialog.Controls.Add($closeButton)
+    [void]$dialog.ShowDialog()
+    $dialog.Dispose()
+    throw 'GPM RELEASE LOCK MISMATCH: build blocked; restore the expected commits manually.'
 }
-# Show the local, manifest and live remote commits together. A newer remote tip
-# is advisory; a protected-branch manifest mismatch remains a build blocker.
-function Show-LibraryRevisionMismatch([string]$Repository, [string]$Required, [string]$Actual, [string]$Branch, [bool]$allow_local_revision = $false, [string]$remote_branch = '', [string]$remote_ref = '', [string]$remote_error = '') {
-    $message = "Repository: $Repository`r`nFirmware branch: $Branch`r`n`r`nLocal commit (A): $Actual`r`nManifest commit (B): $Required"
-    if ($remote_error) {
-        $message += "`r`nLatest official remote commit (C): NOT VERIFIED`r`nReason: $remote_error"
-    }
-    else {
-        $message += "`r`nLatest origin/$remote_branch commit (C): $remote_ref"
-    }
-    if ($Required -ne $Actual) {
-        $message += "`r`n`r`nMANIFEST MISMATCH: the local library commit differs from the revision required by this firmware."
-    }
-    if (-not $remote_error -and $remote_ref -ne $Actual) {
-        $message += "`r`n`r`nREMOTE DIFFERENCE: the local library commit differs from the latest origin/$remote_branch commit. This does not by itself make the pinned firmware revision invalid."
-    }
-    $message += "`r`n`r`nCopy the manifest or remote hash to inspect the corresponding revision before deciding. The manifest declares a required commit; it does not certify a successful build or deployment."
-    if ($allow_local_revision) {
-        $message += "`r`n`r`nDo you want to build with the LOCAL commit (A)? Yes keeps the local checkout. Only approved development manifest mismatches update the manifest, and only if ALL linked Git libraries are clean. No cancels without updating the manifest."
-    }
-    else {
-        $message += "`r`n`r`nBuild stopped: this is a protected or non-development branch.`r`nTo rebuild this release, copy the required commit and inspect it in SourceTree. After safeguarding local changes, manually check out that commit in the LIBRARY repository, then rebuild.`r`n`r`nTo release with newer libraries, update and validate the manifest on a feature/develop branch, then follow the normal release-to-main PR process."
-    }
-    $message += "`r`n`r`nNo automatic checkout will be performed."
-    if ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
-        [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
-        Write-Host $message
-        if ($allow_local_revision) { throw 'Build stopped: interactive library revision confirmation is unavailable.' }
-        return $false
-    }
+
+function Verify-ReleaseLock([string]$Repository, [string]$Branch,
+        [string]$FirmwareHead, [string]$ManifestPath, [object[]]$Revisions) {
+    if ($Branch -notmatch '^(release/.+|main|master)$') { return }
+    # The audit branch is in this project repository, but separate from the
+    # firmware branch, so its commit never changes the pinned firmware SHA.
+    $oldPrompt = $env:GIT_TERMINAL_PROMPT
+    $env:GIT_TERMINAL_PROMPT = '0'
     try {
-        Add-Type -AssemblyName System.Windows.Forms
-        Add-Type -AssemblyName System.Drawing
-        $form = New-Object System.Windows.Forms.Form
-        $form.Text = 'GPM - Library revision check'
-        $form.ClientSize = New-Object System.Drawing.Size(860, 520)
-        $form.StartPosition = 'CenterScreen'
-        $form.FormBorderStyle = 'FixedDialog'
-        $form.MaximizeBox = $false
-        $form.MinimizeBox = $false
-        $form.TopMost = $true
-        $label = New-Object System.Windows.Forms.TextBox
-        $label.Multiline = $true
-        $label.ReadOnly = $true
-        $label.ScrollBars = 'Vertical'
-        $label.SetBounds(16, 16, 828, 370)
-        $label.Text = $message
-        $form.Controls.Add($label)
-        $copy = New-Object System.Windows.Forms.Button
-        $copy.Text = 'Copy manifest hash (B)'
-        $copy.SetBounds(16, 402, 196, 32)
-        $required_hash = $Required
-        $copy.Add_Click({ [System.Windows.Forms.Clipboard]::SetText($required_hash) }.GetNewClosure())
-        $form.Controls.Add($copy)
-        $copy_remote = New-Object System.Windows.Forms.Button
-        $copy_remote.Text = 'Copy remote hash (C)'
-        $copy_remote.SetBounds(228, 402, 196, 32)
-        $copy_remote.Enabled = (-not $remote_error -and -not [string]::IsNullOrWhiteSpace($remote_ref))
-        $remote_hash = $remote_ref
-        $copy_remote.Add_Click({ [System.Windows.Forms.Clipboard]::SetText($remote_hash) }.GetNewClosure())
-        $form.Controls.Add($copy_remote)
-        if ($allow_local_revision) {
-            $proceed = New-Object System.Windows.Forms.Button
-            $proceed.Text = 'Yes - use local hash'
-            $proceed.SetBounds(436, 462, 196, 32)
-            $proceed.DialogResult = [System.Windows.Forms.DialogResult]::Yes
-            $form.Controls.Add($proceed)
+        $fetched = & git -C $Repository fetch --quiet --no-tags origin 'refs/heads/gpm-release-locks:refs/remotes/origin/gpm-release-locks' 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Show-ReleaseLockMismatch "Missing or unreachable GPM release revision audit branch. Cannot read origin/gpm-release-locks for $Branch. Complete the GitHub Actions revision recorder, then retry. Git details: $($fetched -join ' ')"
         }
-        $close = New-Object System.Windows.Forms.Button
-        $close.Text = if ($allow_local_revision) { 'No - cancel build' } else { 'Close' }
-        $close.SetBounds(648, 462, 196, 32)
-        $close.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-        $form.CancelButton = $close
-        $form.AcceptButton = $close
-        $form.Controls.Add($close)
-        return ($form.ShowDialog() -eq [System.Windows.Forms.DialogResult]::Yes)
     }
     catch {
-        Write-Warning "Cannot display library mismatch window: $($_.Exception.Message)"
-        Write-Host $message
-        if ($allow_local_revision) { throw 'Build stopped: cannot display library revision confirmation.' }
-        return $false
+        throw "Cannot verify release lock. $($_.Exception.Message) Check GitHub Actions revision recording and network access."
     }
-    finally {
-        if ($null -ne $form) { $form.Dispose() }
+    finally { $env:GIT_TERMINAL_PROMPT = $oldPrompt }
+
+    $key = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Branch)).TrimEnd('=').Replace('+','-').Replace('/','_')
+    $auditPath = ".gpm/release-locks/$key.json"
+    $snapshot = & git -C $Repository show "refs/remotes/origin/gpm-release-locks:$auditPath" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $snapshot) {
+        Show-ReleaseLockMismatch "Missing snapshot for $Branch in origin/gpm-release-locks:$auditPath. Let the post-merge GitHub Actions job finish (or dispatch it on this branch) before rebuilding."
     }
+    try { $lock = ($snapshot -join [Environment]::NewLine) | ConvertFrom-Json }
+    catch { Show-ReleaseLockMismatch "Invalid revision lock JSON in origin/gpm-release-locks:$auditPath." }
+    if ($lock.schemaVersion -ne 1 -or $lock.firmwareBranch -cne $Branch) {
+        Show-ReleaseLockMismatch "Invalid schema/branch in revision lock for $Branch."
+    }
+    $digest = Invoke-Git $Repository @('rev-parse', 'HEAD:.gpm/avr-libraries.json')
+
+    $errors = @()
+    if ($lock.firmwareCommit -cne $FirmwareHead) {
+        $errors += "FIRMWARE mismatch: expected $($lock.firmwareCommit), actual $FirmwareHead"
+    }
+    if ($lock.manifestBlob -cne $digest) {
+        $errors += "LIBRARY manifest mismatch: expected Git blob $($lock.manifestBlob), actual $digest"
+    }
+    foreach ($revision in $Revisions) {
+        if ([string]$revision.source.ref -cne [string]$revision.head) {
+            $errors += "LIBRARY $($revision.source.url): expected $($revision.source.ref), actual $($revision.head)"
+        }
+    }
+    if ($errors.Count -gt 0) {
+        $lines = @(
+            "Firmware branch: $Branch",
+            "Firmware expected: $($lock.firmwareCommit)",
+            "Firmware actual: $FirmwareHead",
+            "Manifest expected Git blob: $($lock.manifestBlob)",
+            "Manifest actual Git blob: $digest",
+            "", "External Git libraries:"
+        )
+        foreach ($pinned in @($lock.gitLibraries | Where-Object { $null -ne $_ })) {
+            $found = @($Revisions | Where-Object { $_.source.url -eq $pinned.url })
+            $actual = if ($found.Count -eq 1) { $found[0].head } else { 'not linked' }
+            $lines += "$($pinned.url) | expected: $($pinned.sha) | actual: $actual"
+        }
+        $lines += @("", "INCONSISTENCIES:", ($errors -join [Environment]::NewLine),
+          "", "Build BLOCKED. Use Copy all hashes, then restore Git revisions manually.",
+          "No checkout, revision or manifest is changed automatically.")
+        Show-ReleaseLockMismatch ($lines -join [Environment]::NewLine)
+    }
+    Write-Host "GPM revision lock verified: $Branch @ $FirmwareHead"
 }
 function Normalize-Remote([string]$Remote) {
     $url = $Remote.Trim()
@@ -292,43 +289,34 @@ try {
         }
         else { Write-Host "AVR library commit matches manifest: $head" }
     }
-    # Check all participating repositories together, before updating the manifest.
+
+    # Never prompt on develop/feature: report dirty worktrees and preserve X.
+    # Never alter the manifest while any linked library is dirty.
     if ($dirtyNames.Count -gt 0) {
-        $names = ($dirtyNames | Select-Object -Unique) -join "`r`n- "
-        $message = "WARNING! GPM detected uncommitted changes in the following Git repositories:`r`n- $names"
+        $names = ($dirtyNames | Select-Object -Unique) -join ', '
         if (-not $developmentBranch) {
-            throw "$message`r`nBuild stopped: this is a protected or non-development branch."
+            throw "Build blocked on protected branch '$branch': dirty repositories: $names"
         }
-        if (-not (Request-DirtyBuildApproval $message)) {
-            throw 'Build cancelled by user: uncommitted Git changes were not approved.'
-        }
-        Write-Warning "Uncommitted Git changes approved for build: $($dirtyNames -join ', ')"
+        Write-Warning "Uncommitted firmware/library changes: $names. Build will be marked X."
     }
-    # Query live remote tips only after dirty checks have allowed this build.
-    # Every decision is collected before any manifest entry can be changed.
+
+    # Both official firmware and pinned library revisions are checked against
+    # their post-merge snapshot. A mismatch invokes the single blocking form.
+    Verify-ReleaseLock -Repository $repo -Branch $branch -FirmwareHead $firmware_head -ManifestPath $manifestFile -Revisions $revision_checks
+
+    # Newer official remote library commits are advisory. The project manifest,
+    # NOT today's remote HEAD, determines the reproducible release revision.
     foreach ($revision_check in $revision_checks) {
-        $remote_revision = get_remote_library_revision $revision_check.library_root
-        $manifest_mismatch = $revision_check.source.ref -ne $revision_check.head
-        $remote_mismatch = -not $remote_revision.error -and $remote_revision.ref -ne $revision_check.head
-        if ($remote_revision.error -or $manifest_mismatch -or $remote_mismatch) {
-            $allow_local_revision = $developmentBranch -or -not $manifest_mismatch
-            $approved = Show-LibraryRevisionMismatch -Repository $revision_check.source.url -Required $revision_check.source.ref -Actual $revision_check.head -Branch $branch -allow_local_revision $allow_local_revision -remote_branch $remote_revision.branch -remote_ref $remote_revision.ref -remote_error $remote_revision.error
-            # A dialog result can never override protected manifest consistency.
-            if (-not $allow_local_revision) { continue }
-            if (-not $approved) {
-                throw 'Build cancelled by user: local library revision was not approved.'
-            }
-            Write-Warning "Local library revision approved: $($revision_check.source.url) @ $($revision_check.head)"
+        if ($developmentBranch -and [string]$revision_check.source.ref -cne [string]$revision_check.head) {
+            Write-Warning "Development library revision differs from the manifest; update pending (only if clean)."
         }
-        else {
-            Write-Host "AVR library commit matches latest origin/$($remote_revision.branch): $($remote_revision.ref)"
-        }
+        # No automatic release checkout, approval or change to the pinned SHA.
     }
     if ($revisionErrors.Count -gt 0) {
-        throw ($revisionErrors -join "`n")
+        throw ($revisionErrors -join [Environment]::NewLine)
     }
-    # All approvals refer to these snapshots. A checkout, commit, new dirty
-    # file or manifest edit performed while a window was open requires a retry.
+    # Recheck every snapshot before changing the manifest. Any concurrent checkout,
+    # commit, working-tree change or manifest edit requires a new Rebuild.
     assert_repository_unchanged $repo $firmware_head $branch $firmwareStatus
     foreach ($revision_check in $revision_checks) {
         assert_repository_unchanged $revision_check.library_root $revision_check.head $revision_check.branch $revision_check.status
@@ -367,14 +355,14 @@ try {
     # One Git repository: its abbreviated commit. Multiple dependencies: a
     # deterministic seven-character fingerprint of all pinned references.
     # Always use a real Git SHA when exactly one Git repository is pinned.
-    # Multiple dependencies (or none) use a deterministic SHA256 fingerprint;
-    # an empty dependency set has the SHA256(empty string) fingerprint.
+    # Multiple dependencies (or none) use a deterministic Git blob fingerprint;
+    # an empty dependency set has the Git blob(empty string) fingerprint.
     if ($versions.Count -eq 1 -and $repositories.Count -eq 1) {
         $shortVersion = ([string]$localRevisions[0].ref).Substring(0, 7).ToLowerInvariant()
     }
     else {
         $data = [System.Text.Encoding]::UTF8.GetBytes(($versions -join ';'))
-        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $sha256 = [System.Security.Cryptography.Git blob]::Create()
         try { $digest = $sha256.ComputeHash($data) }
         finally { $sha256.Dispose() }
         $shortVersion = [System.BitConverter]::ToString($digest).Replace('-', '').Substring(0, 7).ToLowerInvariant()
