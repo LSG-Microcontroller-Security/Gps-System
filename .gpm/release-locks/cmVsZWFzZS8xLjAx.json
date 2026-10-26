@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "firmwareBranch": "release/1.01",
+  "firmwareCommit": "79acbf6c54120a490d07141ea8c53bac27e3dfab",
+  "manifestBlob": "c072d5960058611a7c1c9ffcfa4d60b558843606",
+  "gitLibraries": [
+    {
+      "url": "https://github.com/MicroControllerTeamProject/libraries",
+      "sha": "e213f09f168c3a0d83a3cd2969104eb8a358297d"
+    }
+  ]
+}
