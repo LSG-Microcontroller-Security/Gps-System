@@ -19,18 +19,7 @@ if errorlevel 1 goto fail
 set /p BRANCH=<"%GITTMP%"
 if not defined BRANCH goto fail
 echo Git branch: %BRANCH%
-if /I not "%BRANCH:~0,8%"=="release/" goto generate_version
-set "FAIL_DEFINE=INVALID_RELEASE_BUILD"
-REM Dirty repositories are reported together by SyncAvrLibraries.ps1.
-git -C "%REPO%" fetch origin "%BRANCH%" --quiet
-if errorlevel 1 goto fail
-git -C "%REPO%" rev-parse HEAD > "%GITTMP%"
-if errorlevel 1 goto fail
-set /p LOCAL=<"%GITTMP%"
-git -C "%REPO%" rev-parse FETCH_HEAD > "%GITTMP%"
-if errorlevel 1 goto fail
-set /p REMOTE=<"%GITTMP%"
-if /I not "%LOCAL%"=="%REMOTE%" goto fail
+if /I "%BRANCH:~0,8%"=="release/" set "FAIL_DEFINE=INVALID_RELEASE_BUILD"
 :generate_version
 REM Always use the real firmware commit SHA on every branch.
 git -C "%REPO%" rev-parse --short=7 HEAD > "%GITTMP%"
@@ -47,6 +36,19 @@ REM The library helper appends its macro; the firmware macro is written afterwar
 REM so a manifest updated by the helper is marked with X as locally modified.
 powershell.exe -NoProfile -STA -NonInteractive -ExecutionPolicy Bypass -File "%SKETCH%SyncAvrLibraries.ps1"
 if errorlevel 1 goto fail
+REM Check a dirty release before fetching its remote branch. Local-only releases
+REM still require the original remote alignment and revision locks when clean.
+if /I not "%BRANCH:~0,8%"=="release/" goto release_remote_checked
+git -C "%REPO%" fetch origin "%BRANCH%" --quiet
+if errorlevel 1 goto fail
+git -C "%REPO%" rev-parse HEAD > "%GITTMP%"
+if errorlevel 1 goto fail
+set /p LOCAL=<"%GITTMP%"
+git -C "%REPO%" rev-parse FETCH_HEAD > "%GITTMP%"
+if errorlevel 1 goto fail
+set /p REMOTE=<"%GITTMP%"
+if /I not "%LOCAL%"=="%REMOTE%" goto fail
+:release_remote_checked
 REM Dirty repositories are validated by the library helper on all branches.
 if /I "%BRANCH:~0,8%"=="release/" goto publish_version
 if /I "%BRANCH%"=="main" goto publish_version
