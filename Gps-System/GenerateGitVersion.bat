@@ -36,9 +36,15 @@ REM The library helper appends its macro; the firmware macro is written afterwar
 REM so a manifest updated by the helper is marked with X as locally modified.
 powershell.exe -NoProfile -STA -NonInteractive -ExecutionPolicy Bypass -File "%SKETCH%SyncAvrLibraries.ps1"
 if errorlevel 1 goto fail
-REM Check a dirty release before fetching its remote branch. Local-only releases
-REM still require the original remote alignment and revision locks when clean.
+REM The helper has checked dirty worktrees and revision locks first.
+REM Fetch/alignment are mandatory for published releases, not local-only ones.
 if /I not "%BRANCH:~0,8%"=="release/" goto release_remote_checked
+REM ls-remote exits 2 only when the release ref is absent; transport/auth errors
+REM must still fail closed rather than being mistaken for an unpublished release.
+git -C "%REPO%" ls-remote --exit-code --heads origin "refs/heads/%BRANCH%" > "%GITTMP%" 2>nul
+if errorlevel 3 goto fail
+if errorlevel 2 goto release_remote_checked
+if errorlevel 1 goto fail
 git -C "%REPO%" fetch origin "%BRANCH%" --quiet
 if errorlevel 1 goto fail
 git -C "%REPO%" rev-parse HEAD > "%GITTMP%"
