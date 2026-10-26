@@ -80,15 +80,26 @@ function get_remote_library_revision([string]$library_root) {
 # A protected Dirty build cannot proceed. On interactive Windows the user sees a
 # minimal blocking notice, without filenames, hashes or override choices.
 function Stop-DirtyProtectedBuild {
-    $message = 'Il repository è sporco. Per procedere con la compilazione è necessario ripulirlo.'
+    # Keep the text ASCII-safe: Windows PowerShell 5.1 reads UTF-8 without BOM as ANSI.
+    $message = 'Il repository {0} sporco. Per procedere con la compilazione {0} necessario ripulirlo.' -f [char]0x00E8
     if (-not ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
         [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT)) {
         Add-Type -AssemblyName System.Windows.Forms
-        [void][System.Windows.Forms.MessageBox]::Show(
-            $message,
-            'GPM - Compilazione bloccata',
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Warning)
+        # The native message box is modal and owned by a topmost HWND so it
+        # cannot disappear behind Visual Studio during a blocked prebuild.
+        $owner = New-Object System.Windows.Forms.Form
+        $owner.TopMost = $true
+        $owner.ShowInTaskbar = $false
+        try {
+            [void]$owner.Handle
+            [void][System.Windows.Forms.MessageBox]::Show(
+                $owner,
+                $message,
+                'GPM - Compilazione bloccata',
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning)
+        }
+        finally { $owner.Dispose() }
     }
     throw $message
 }
@@ -110,6 +121,7 @@ function Show-ReleaseLockMismatch([string]$Details) {
     $dialog.FormBorderStyle = 'FixedDialog'
     $dialog.MaximizeBox = $false
     $dialog.MinimizeBox = $false
+    $dialog.TopMost = $true
     $detailsText = New-Object System.Windows.Forms.TextBox
     $detailsText.Multiline = $true
     $detailsText.ReadOnly = $true
