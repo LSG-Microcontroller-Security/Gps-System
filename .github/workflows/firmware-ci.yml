@@ -67,7 +67,7 @@ jobs:
           if [[ "$BRANCH" != main && "$BRANCH" != master ]]; then
             VERSION+="*"
           fi
-          if [[ -n "$(git status --porcelain -- . ':(exclude)**/GitVersion.generated.h' ':(exclude,glob)**/*.vcxproj')" ]]; then
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
             if [[ "$BRANCH" == release/* ]]; then
               echo "Release CI refuses uncommitted firmware changes" >&2
               exit 1
