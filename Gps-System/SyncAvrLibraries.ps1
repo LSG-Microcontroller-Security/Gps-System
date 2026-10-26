@@ -136,11 +136,31 @@ function Show-ReleaseLockMismatch([string]$Details) {
 function Verify-ReleaseLock([string]$Repository, [string]$Branch,
         [string]$FirmwareHead, [string]$ManifestPath, [object[]]$Revisions) {
     if ($Branch -notmatch '^(release/.+|main|master)$') { return }
-    # The audit branch is in this project repository, but separate from the
-    # firmware branch, so its commit never changes the pinned firmware SHA.
+    # A local-only release can be rebuilt before its first push. Never infer
+    # unpublished status from a failed remote lookup or a missing audit snapshot.
+    $local_only_release = $false
     $oldPrompt = $env:GIT_TERMINAL_PROMPT
     $env:GIT_TERMINAL_PROMPT = '0'
     try {
+        if ($Branch -match '^release/.+$') {
+            # Query live origin refs, not potentially stale local tracking refs.
+            $remote_refs = & git -C $Repository ls-remote --heads origin "refs/heads/$Branch" 'refs/heads/gpm-release-locks' 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Show-ReleaseLockMismatch "Cannot determine publication state for $Branch; remote Git lookup failed. Build blocked."
+            }
+            $remote_names = @($remote_refs | ForEach-Object { ([string]$_ -split '\s+')[-1] })
+            $local_only_release = -not ($remote_names -contains "refs/heads/$Branch")
+            if (-not ($remote_names -contains 'refs/heads/gpm-release-locks')) {
+                if ($local_only_release) {
+                    Write-Host "GPM local-only release: $Branch; remote lock not yet required."
+                    return
+                }
+                Show-ReleaseLockMismatch "Missing release audit branch for published $Branch."
+            }
+        }
+
+        # The audit branch lives separately from firmware and never changes
+        # the pinned firmware SHA. Published releases always require it.
         $fetched = & git -C $Repository fetch --quiet --no-tags origin 'refs/heads/gpm-release-locks:refs/remotes/origin/gpm-release-locks' 2>&1
         if ($LASTEXITCODE -ne 0) {
             Show-ReleaseLockMismatch "Missing or unreachable GPM release revision audit branch. Cannot read origin/gpm-release-locks for $Branch. Complete the GitHub Actions revision recorder, then retry. Git details: $($fetched -join ' ')"
@@ -153,9 +173,25 @@ function Verify-ReleaseLock([string]$Repository, [string]$Branch,
 
     $key = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Branch)).TrimEnd('=').Replace('+','-').Replace('/','_')
     $auditPath = ".gpm/release-locks/$key.json"
+    # Check tree paths before reading a blob: absent paths must not produce a
+    # raw fatal Git error under PowerShell's ErrorActionPreference=Stop.
+    $audit_paths = & git -C $Repository ls-tree -r --name-only refs/remotes/origin/gpm-release-locks -- $auditPath
+    if ($LASTEXITCODE -ne 0) {
+        Show-ReleaseLockMismatch "Cannot inspect remote release audit tree for $Branch."
+    }
+    if (-not (@($audit_paths) -ccontains $auditPath)) {
+        if ($local_only_release) {
+            Write-Host "GPM local-only release: $Branch; no published revision snapshot."
+            return
+        }
+        Show-ReleaseLockMismatch "Missing snapshot for $Branch in origin/gpm-release-locks:$auditPath. Let the post-merge GitHub Actions job finish (or dispatch it on this branch) before rebuilding."
+    }
+    if ($local_only_release) {
+        Show-ReleaseLockMismatch "A revision snapshot exists for $Branch, but its remote branch is missing. Cannot treat it as a new local release."
+    }
     $snapshot = & git -C $Repository show "refs/remotes/origin/gpm-release-locks:$auditPath" 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $snapshot) {
-        Show-ReleaseLockMismatch "Missing snapshot for $Branch in origin/gpm-release-locks:$auditPath. Let the post-merge GitHub Actions job finish (or dispatch it on this branch) before rebuilding."
+        Show-ReleaseLockMismatch "Cannot read revision snapshot for $Branch in origin/gpm-release-locks."
     }
     try { $lock = ($snapshot -join [Environment]::NewLine) | ConvertFrom-Json }
     catch { Show-ReleaseLockMismatch "Invalid revision lock JSON in origin/gpm-release-locks:$auditPath." }
