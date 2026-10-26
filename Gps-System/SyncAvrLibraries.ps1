@@ -355,14 +355,14 @@ try {
     # One Git repository: its abbreviated commit. Multiple dependencies: a
     # deterministic seven-character fingerprint of all pinned references.
     # Always use a real Git SHA when exactly one Git repository is pinned.
-    # Multiple dependencies (or none) use a deterministic Git blob fingerprint;
-    # an empty dependency set has the Git blob(empty string) fingerprint.
+    # Multiple dependencies (or none) use a deterministic SHA256 fingerprint;
+    # an empty dependency set has the SHA256(empty string) fingerprint.
     if ($versions.Count -eq 1 -and $repositories.Count -eq 1) {
         $shortVersion = ([string]$localRevisions[0].ref).Substring(0, 7).ToLowerInvariant()
     }
     else {
         $data = [System.Text.Encoding]::UTF8.GetBytes(($versions -join ';'))
-        $sha256 = [System.Security.Cryptography.Git blob]::Create()
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
         try { $digest = $sha256.ComputeHash($data) }
         finally { $sha256.Dispose() }
         $shortVersion = [System.BitConverter]::ToString($digest).Replace('-', '').Substring(0, 7).ToLowerInvariant()
