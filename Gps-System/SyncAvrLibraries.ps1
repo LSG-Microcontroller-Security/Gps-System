@@ -123,7 +123,7 @@ function Show-ReleaseLockMismatch([string]$Details) {
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
     $dialog = New-Object System.Windows.Forms.Form
-    $dialog.Text = 'GPM - Release revision mismatch (build blocked)'
+    $dialog.Text = 'GPM - Git Revision Mismatch (Build Blocked)'
     $dialog.Size = New-Object System.Drawing.Size(840, 490)
     $dialog.StartPosition = 'CenterScreen'
     $dialog.FormBorderStyle = 'FixedDialog'
@@ -233,22 +233,51 @@ function Verify-ReleaseLock([string]$Repository, [string]$Branch,
         }
     }
     if ($errors.Count -gt 0) {
+        # ASCII-only diagnostics work in Visual Micro, IDE build logs and CI.
+        # Keep the expected/actual hashes visible and do not change release checks.
         $lines = @(
-            "Firmware branch: $Branch",
-            "Firmware expected: $($lock.firmwareCommit)",
-            "Firmware actual: $FirmwareHead",
-            "Manifest expected Git blob: $($lock.manifestBlob)",
-            "Manifest actual Git blob: $digest",
-            "", "External Git libraries:"
+            "======================================================================",
+            "GPM - GIT REVISION MISMATCH  [BUILD BLOCKED]",
+            "======================================================================",
+            "",
+            "ERROR: Current Git revisions do not match this release snapshot.",
+            "",
+            "RELEASE",
+            "  FIRMWARE BRANCH: $Branch",
+            "",
+            "FIRMWARE COMMIT",
+            "  EXPECTED: $($lock.firmwareCommit)",
+            "  ACTUAL:   $FirmwareHead",
+            "",
+            "LIBRARY MANIFEST (GIT BLOB)",
+            "  EXPECTED: $($lock.manifestBlob)",
+            "  ACTUAL:   $digest",
+            "",
+            "EXTERNAL GIT LIBRARIES"
         )
         foreach ($pinned in @($lock.gitLibraries | Where-Object { $null -ne $_ })) {
             $found = @($Revisions | Where-Object { $_.source.url -eq $pinned.url })
             $actual = if ($found.Count -eq 1) { $found[0].head } else { 'not linked' }
-            $lines += "$($pinned.url) | expected: $($pinned.sha) | actual: $actual"
+            $lines += @(
+                "  REPOSITORY: $($pinned.url)",
+                "    EXPECTED: $($pinned.sha)",
+                "    ACTUAL:   $actual"
+            )
         }
-        $lines += @("", "INCONSISTENCIES:", ($errors -join [Environment]::NewLine),
-          "", "Build BLOCKED. Use Copy all hashes, then restore Git revisions manually.",
-          "No checkout, revision or manifest is changed automatically.")
+        $lines += @("", "MISMATCH DETAILS")
+        foreach ($detail in $errors) { $lines += "  - $detail" }
+        $lines += @(
+            "",
+            "REQUIRED ACTION - VERIFY BEFORE REBUILDING",
+            "  1. CHECK THE FIRMWARE GIT COMMIT HASH.",
+            "  2. CHECK ALL EXTERNAL LIBRARY GIT COMMIT HASHES.",
+            "  3. CHECK THE LIBRARY MANIFEST AGAINST THE RELEASE SNAPSHOT.",
+            "  4. RESTORE THE REQUIRED GIT REVISIONS MANUALLY, THEN REBUILD.",
+            "",
+            "NO GIT CHECKOUT OR MANIFEST UPDATE WAS PERFORMED AUTOMATICALLY.",
+            "======================================================================",
+            "BUILD BLOCKED"
+        )
         Show-ReleaseLockMismatch ($lines -join [Environment]::NewLine)
     }
     Write-Host "GPM revision lock verified: $Branch @ $FirmwareHead"
@@ -355,7 +384,26 @@ try {
         $revision_checks += [pscustomobject]@{ source = $source; head = $head; library_root = $libraryRoot; branch = $libraryBranch; status = $status }
         if ($source.ref -ne $head) {
             if (-not $developmentBranch) {
-                $revisionErrors += "Library version mismatch on protected/non-development branch '$branch' for $($source.url). Required $($source.ref), local $head. Manually check out the required library commit to rebuild; for newer libraries, update the manifest via feature/develop -> release -> main."
+                $revisionErrors += @(
+                    "======================================================================",
+                    "GPM - GIT REVISION MISMATCH  [BUILD BLOCKED]",
+                    "======================================================================",
+                    "ERROR: Library Git commit does not match the pinned manifest.",
+                    "  FIRMWARE BRANCH: $branch",
+                    "  LIBRARY:         $($source.url)",
+                    "  EXPECTED COMMIT: $($source.ref)",
+                    "  ACTUAL COMMIT:   $head",
+                    "",
+                    "REQUIRED ACTION - VERIFY BEFORE REBUILDING",
+                    "  1. CHECK THE FIRMWARE GIT COMMIT HASH.",
+                    "  2. CHECK ALL EXTERNAL LIBRARY GIT COMMIT HASHES.",
+                    "  3. CHECK THE LIBRARY MANIFEST FOR THIS RELEASE.",
+                    "  4. RESTORE THE PINNED LIBRARY COMMIT MANUALLY, OR UPDATE THE",
+                    "     MANIFEST THROUGH FEATURE/DEVELOP -> RELEASE -> MAIN.",
+                    "",
+                    "BUILD BLOCKED",
+                    "======================================================================"
+                ) -join [Environment]::NewLine
             }
             else {
                 Write-Warning "Development uses local library commit $head (pinned manifest: $($source.ref)). Rebuild is read-only: run GPM on the application feature to record the chosen revisions before its PR."
