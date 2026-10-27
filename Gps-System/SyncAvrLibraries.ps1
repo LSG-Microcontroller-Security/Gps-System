@@ -85,31 +85,37 @@ function Get-BuildRelevantFirmwareStatus([string]$Repository) {
         '--', '.', ':(exclude,glob)**/*.vcxproj')
 }
 
-# A protected Dirty build cannot proceed. On interactive Windows the user sees a
-# minimal blocking notice, without filenames, hashes or override choices.
-function Stop-DirtyProtectedBuild {
-    # Use ASCII-only text: Windows PowerShell 5.1 can read UTF-8 without BOM as ANSI.
-    $message = 'Uncommitted changes detected. Verify that all project and library repositories have no uncommitted changes before compiling.'
-    if (-not ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
-        [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT)) {
-        Add-Type -AssemblyName System.Windows.Forms
-        # The native message box is modal and owned by a topmost HWND so it
-        # cannot disappear behind Visual Studio during a blocked prebuild.
-        $owner = New-Object System.Windows.Forms.Form
-        $owner.TopMost = $true
-        $owner.ShowInTaskbar = $false
-        try {
-            [void]$owner.Handle
-            [void][System.Windows.Forms.MessageBox]::Show(
-                $owner,
-                $message,
-                'GPM - Build blocked',
-                [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Warning)
-        }
-        finally { $owner.Dispose() }
+# Protected branches always block Dirty builds. Use only plain ASCII text
+# so Visual Micro, Arduino IDE build logs and CI display the same diagnostic.
+# No dialog is shown and no Git checkout or working tree is changed.
+function Stop-DirtyProtectedBuild([string]$Branch, [string[]]$Repositories) {
+    $lines = @(
+        "======================================================================",
+        "GPM - DIRTY GIT REPOSITORIES  [BUILD BLOCKED]",
+        "======================================================================",
+        "",
+        "ERROR: Uncommitted changes detected on a protected firmware branch.",
+        "",
+        "FIRMWARE BRANCH",
+        "  $Branch",
+        "",
+        "DIRTY REPOSITORIES"
+    )
+    foreach ($repositoryName in $Repositories) {
+        $lines += "  - $repositoryName"
     }
-    throw $message
+    $lines += @(
+        "",
+        "REQUIRED ACTION - CLEAN REPOSITORIES BEFORE REBUILDING",
+        "  1. CHECK THE FIRMWARE AND ALL EXTERNAL LIBRARY REPOSITORIES.",
+        "  2. COMMIT, STASH OR DISCARD UNCOMMITTED CHANGES AS APPROPRIATE.",
+        "  3. VERIFY THE REPOSITORIES ARE CLEAN FOR BUILD, THEN REBUILD.",
+        "",
+        "NO FILES, GIT REVISIONS OR MANIFESTS WERE CHANGED AUTOMATICALLY.",
+        "======================================================================",
+        "BUILD BLOCKED"
+    )
+    throw ($lines -join [Environment]::NewLine)
 }
 
 # Release mismatch diagnostics remain read-only and blocking; the copy button
@@ -418,7 +424,7 @@ try {
         $names = ($dirtyNames | Select-Object -Unique) -join ', '
         if (-not $developmentBranch) {
             if ($branch -match '^(release/.+|main|master)$') {
-                Stop-DirtyProtectedBuild
+                Stop-DirtyProtectedBuild -Branch $branch -Repositories @($dirtyNames | Select-Object -Unique)
             }
             throw "Build blocked on protected branch '$branch': dirty repositories: $names"
         }
