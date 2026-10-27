@@ -77,6 +77,42 @@ function get_remote_library_revision([string]$library_root) {
     }
 }
 
+# Allow ONLY a proven Visual Micro IntelliSense-only modification to a
+# tracked .vcxproj, without trusting its timing or any prior dirty snapshot.
+# Git changes to firmware sources, staged/untracked files or libraries still
+# block a protected build. The comparison is read-only.
+function Test-VisualMicroIntellisenseOnlyDirty([string]$Repository, [string]$Status) {
+    if (-not $Status) { return $false }
+    # Invoke-Git trims the status string; query the raw porcelain output to
+    # retain its leading two-column staged/unstaged markers. A staged file is
+    # NEVER equivalent to an IDE-generated, unstaged IntelliSense rewrite.
+    $rawStatus = & git -C $Repository status --porcelain --untracked-files=all 2>&1
+    if ($LASTEXITCODE -ne 0) { return $false }
+    $rawText = @($rawStatus) -join "`n"
+    if ($rawText.Trim() -cne $Status) { return $false }
+    foreach ($statusLine in ($rawText -split "\r?\n")) {
+        if ($statusLine -notmatch '^ M ([^"\r\n]+\.vcxproj)$') { return $false }
+        $relativePath = $Matches[1]
+        $diff = & git -C $Repository diff --no-ext-diff --ignore-space-at-eol --unified=0 -- $relativePath 2>&1
+        if ($LASTEXITCODE -ne 0) { return $false }
+        $diffText = @($diff) -join "`n"
+        $changedLines = 0
+        foreach ($diffLine in ($diffText -split "\r?\n")) {
+            if ($diffLine -match '^(diff --git |index |--- |\+\+\+ |@@)') { continue }
+            if (-not $diffLine) { continue }
+            if ($diffLine.StartsWith('+') -or $diffLine.StartsWith('-')) {
+                if ($diffLine -notmatch '^[+-]\s*<(IncludePath|AdditionalIncludeDirectories|RemoteCCompileToolExe|RemoteCppCompileToolExe)>.*</\1>\s*$') {
+                    return $false
+                }
+                $changedLines++
+            }
+            else { return $false }
+        }
+        if ($changedLines -eq 0) { return $false }
+    }
+    return $true
+}
+
 # A protected Dirty build cannot proceed. On interactive Windows the user sees a
 # minimal blocking notice, without filenames, hashes or override choices.
 function Stop-DirtyProtectedBuild {
@@ -288,7 +324,16 @@ try {
     $hasUnofficialLibraryBranch = $false
     $dirtyNames = New-Object 'System.Collections.Generic.List[string]'
     $firmwareStatus = Invoke-Git $repo @('status', '--porcelain', '--untracked-files=all')
-    if ($firmwareStatus) { $dirtyNames.Add((Split-Path $repo -Leaf)) }
+    # Ignore only verified unstaged IntelliSense property rewrites on any branch.
+    # Other changes to the project remain Dirty and protected builds still fail.
+    $intellisenseOnly = $firmwareStatus -and
+        (Test-VisualMicroIntellisenseOnlyDirty $repo $firmwareStatus)
+    if ($firmwareStatus -and -not $intellisenseOnly) {
+        $dirtyNames.Add((Split-Path $repo -Leaf))
+    }
+    if ($intellisenseOnly) {
+        Write-Host 'GPM: only Visual Micro IntelliSense project properties changed; firmware source files match Git HEAD.'
+    }
     $localRevisions = @()
     $revisionErrors = @()
     $revision_checks = @()
