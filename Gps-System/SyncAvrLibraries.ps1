@@ -88,8 +88,8 @@ function Get-BuildRelevantFirmwareStatus([string]$Repository) {
 # A protected Dirty build cannot proceed. On interactive Windows the user sees a
 # minimal blocking notice, without filenames, hashes or override choices.
 function Stop-DirtyProtectedBuild {
-    # Keep the text ASCII-safe: Windows PowerShell 5.1 reads UTF-8 without BOM as ANSI.
-    $message = 'Il repository {0} sporco. Per procedere con la compilazione {0} necessario ripulirlo.' -f [char]0x00E8
+    # Use ASCII-only text: Windows PowerShell 5.1 can read UTF-8 without BOM as ANSI.
+    $message = 'Uncommitted changes detected. Verify that all project and library repositories have no uncommitted changes before compiling.'
     if (-not ($env:CI -or $env:GITHUB_ACTIONS -or -not [Environment]::UserInteractive -or
         [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT)) {
         Add-Type -AssemblyName System.Windows.Forms
@@ -103,7 +103,7 @@ function Stop-DirtyProtectedBuild {
             [void][System.Windows.Forms.MessageBox]::Show(
                 $owner,
                 $message,
-                'GPM - Compilazione bloccata',
+                'GPM - Build blocked',
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Warning)
         }
