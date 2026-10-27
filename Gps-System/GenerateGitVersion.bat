@@ -59,7 +59,8 @@ REM Dirty repositories are validated by the library helper on all branches.
 if /I "%BRANCH:~0,8%"=="release/" goto publish_version
 if /I "%BRANCH%"=="main" goto publish_version
 if /I "%BRANCH%"=="master" goto publish_version
-git -C "%REPO%" status --porcelain --untracked-files=all > "%GITTMP%"
+REM Ignore only Visual Studio project files for the build Dirty marker; keep them Git-tracked.
+git -C "%REPO%" status --porcelain --untracked-files=all -- . ":(exclude,glob)**/*.vcxproj" > "%GITTMP%"
 if errorlevel 1 goto fail
 for %%A in ("%GITTMP%") do if not "%%~zA"=="0" set "VERSION=%VERSION%X"
 :publish_version

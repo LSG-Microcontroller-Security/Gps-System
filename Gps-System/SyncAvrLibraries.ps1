@@ -77,40 +77,12 @@ function get_remote_library_revision([string]$library_root) {
     }
 }
 
-# Allow ONLY a proven Visual Micro IntelliSense-only modification to a
-# tracked .vcxproj, without trusting its timing or any prior dirty snapshot.
-# Git changes to firmware sources, staged/untracked files or libraries still
-# block a protected build. The comparison is read-only.
-function Test-VisualMicroIntellisenseOnlyDirty([string]$Repository, [string]$Status) {
-    if (-not $Status) { return $false }
-    # Invoke-Git trims the status string; query the raw porcelain output to
-    # retain its leading two-column staged/unstaged markers. A staged file is
-    # NEVER equivalent to an IDE-generated, unstaged IntelliSense rewrite.
-    $rawStatus = & git -C $Repository status --porcelain --untracked-files=all 2>&1
-    if ($LASTEXITCODE -ne 0) { return $false }
-    $rawText = @($rawStatus) -join "`n"
-    if ($rawText.Trim() -cne $Status) { return $false }
-    foreach ($statusLine in ($rawText -split "\r?\n")) {
-        if ($statusLine -notmatch '^ M ([^"\r\n]+\.vcxproj)$') { return $false }
-        $relativePath = $Matches[1]
-        $diff = & git -C $Repository diff --no-ext-diff --ignore-space-at-eol --unified=0 -- $relativePath 2>&1
-        if ($LASTEXITCODE -ne 0) { return $false }
-        $diffText = @($diff) -join "`n"
-        $changedLines = 0
-        foreach ($diffLine in ($diffText -split "\r?\n")) {
-            if ($diffLine -match '^(diff --git |index |--- |\+\+\+ |@@)') { continue }
-            if (-not $diffLine) { continue }
-            if ($diffLine.StartsWith('+') -or $diffLine.StartsWith('-')) {
-                if ($diffLine -notmatch '^[+-]\s*<(IncludePath|AdditionalIncludeDirectories|RemoteCCompileToolExe|RemoteCppCompileToolExe)>.*</\1>\s*$') {
-                    return $false
-                }
-                $changedLines++
-            }
-            else { return $false }
-        }
-        if ($changedLines -eq 0) { return $false }
-    }
-    return $true
+# Ignore .vcxproj files entirely in the local prebuild Dirty decision.
+# They remain tracked, visible and committable. Other firmware and library files
+# retain normal Dirty checks, including staged and untracked changes.
+function Get-BuildRelevantFirmwareStatus([string]$Repository) {
+    return Invoke-Git $Repository @('status', '--porcelain', '--untracked-files=all',
+        '--', '.', ':(exclude,glob)**/*.vcxproj')
 }
 
 # A protected Dirty build cannot proceed. On interactive Windows the user sees a
@@ -323,16 +295,14 @@ try {
     $hasDirtyLibraries = $false
     $hasUnofficialLibraryBranch = $false
     $dirtyNames = New-Object 'System.Collections.Generic.List[string]'
+    # Keep the full working-tree snapshot for concurrent-change detection.
     $firmwareStatus = Invoke-Git $repo @('status', '--porcelain', '--untracked-files=all')
-    # Ignore only verified unstaged IntelliSense property rewrites on any branch.
-    # Other changes to the project remain Dirty and protected builds still fail.
-    $intellisenseOnly = $firmwareStatus -and
-        (Test-VisualMicroIntellisenseOnlyDirty $repo $firmwareStatus)
-    if ($firmwareStatus -and -not $intellisenseOnly) {
+    $buildRelevantStatus = Get-BuildRelevantFirmwareStatus $repo
+    if ($buildRelevantStatus) {
         $dirtyNames.Add((Split-Path $repo -Leaf))
     }
-    if ($intellisenseOnly) {
-        Write-Host 'GPM: only Visual Micro IntelliSense project properties changed; firmware source files match Git HEAD.'
+    elseif ($firmwareStatus) {
+        Write-Host 'GPM: .vcxproj changes excluded from build Dirty check; files remain tracked by Git.'
     }
     $localRevisions = @()
     $revisionErrors = @()
